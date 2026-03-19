@@ -1,0 +1,46 @@
+{
+  "placeholderImages": [
+    {
+      "id": "avatar-user",
+      "description": "Main user avatar",
+      "imageUrl": "https://picsum.photos/seed/alex/200/200",
+      "imageHint": "teenager boy avatar"
+    },
+    {
+      "id": "avatar-1",
+      "description": "Student avatar 1",
+      "imageUrl": "https://picsum.photos/seed/stud1/200/200",
+      "imageHint": "student girl avatar"
+    },
+    {
+      "id": "avatar-2",
+      "description": "Student avatar 2",
+      "imageUrl": "https://picsum.photos/seed/stud2/200/200",
+      "imageHint": "student boy avatar"
+    },
+    {
+      "id": "avatar-3",
+      "description": "Student avatar 3",
+      "imageUrl": "https://picsum.photos/seed/stud3/200/200",
+      "imageHint": "student avatar"
+    },
+    {
+      "id": "ai-mentor",
+      "description": "AI Mentor Avatar",
+      "imageUrl": "https://picsum.photos/seed/ai-bot/200/200",
+      "imageHint": "futuristic robot face"
+    },
+    {
+      "id": "game-trivia",
+      "description": "Trivia game background",
+      "imageUrl": "https://picsum.photos/seed/trivia/600/400",
+      "imageHint": "cyberpunk neon trivia"
+    },
+    {
+      "id": "game-clicker",
+      "description": "Clicker game icon",
+      "imageUrl": "https://picsum.photos/seed/click/600/400",
+      "imageHint": "digital glowing button"
+    }
+  ]
+}

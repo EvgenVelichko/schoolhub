@@ -1,0 +1,75 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "Профіль користувача",
+      "description": "Дані профілю учня, включаючи рейтинг, монети та статус модерації.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "gradeLevel": { "type": "string" },
+        "schoolId": { "type": "string" },
+        "schoolName": { "type": "string" },
+        "coins": { "type": "number", "default": 0 },
+        "level": { "type": "number", "default": 1 },
+        "xp": { "type": "number", "default": 0 },
+        "academicStatus": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin", "owner", "tester"], "default": "user" },
+        "isBanned": { "type": "boolean", "default": false },
+        "isMuted": { "type": "boolean", "default": false },
+        "isNzConnected": { "type": "boolean", "default": false },
+        "lastSync": { "type": "string", "format": "date-time" },
+        "bio": { "type": "string" },
+        "purchasedItems": { "type": "array", "items": { "type": "string" } },
+        "achievements": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["uid", "displayName"]
+    },
+    "Grade": {
+      "title": "Оцінка",
+      "description": "Запис про оцінку учня.",
+      "type": "object",
+      "properties": {
+        "subject": { "type": "string" },
+        "score": { "type": "string" },
+        "date": { "type": "string" },
+        "type": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "syncedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Report": {
+      "title": "Звернення",
+      "description": "Звернення до служби підтримки.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "text": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "closed"], "default": "active" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastMessage": { "type": "string" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["google.com", "password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Профілі користувачів."
+    },
+    "/users/{userId}/grades/{gradeId}": {
+      "schema": "Grade",
+      "description": "Оцінки користувача."
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Звернення до підтримки."
+    }
+  }
+}

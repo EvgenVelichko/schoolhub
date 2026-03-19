@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 4.5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 25 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 25 100% 50%;
+    --radius: 1.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  /* Повне глобальне приховування смуг прокрутки */
+  html, body, * {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+  
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/30;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    background-image: radial-gradient(circle at 50% 50%, rgba(255, 107, 0, 0.03) 0%, transparent 80%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+.glass-panel {
+  @apply bg-white/[0.02] backdrop-blur-2xl border border-white/5;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+.cyber-gradient {
+  background: linear-gradient(135deg, #FF6B00 0%, #CC3300 100%);
+  box-shadow: 0 8px 30px -5px rgba(255, 107, 0, 0.2);
+}
+
+.text-glow {
+  text-shadow: 0 0 20px rgba(255, 107, 0, 0.4);
+}
+
+.neon-text-orange {
+  color: #fff !important;
+  text-shadow: 0 0 12px rgba(255, 107, 0, 0.8), 0 0 24px rgba(255, 107, 0, 0.4);
+}
+
+.aura-rainbow {
+  position: relative;
+}
+
+.aura-rainbow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8);
+  background-size: 400%;
+  z-index: -1;
+  filter: blur(8px);
+  animation: rainbow-anim 8s linear infinite;
+  border-radius: inherit;
+  opacity: 0.4;
+}
+
+@keyframes rainbow-anim {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-reveal {
+  animation: reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-bubble-own {
+  @apply cyber-gradient text-white rounded-2xl rounded-br-none;
+}
+
+.chat-bubble-other {
+  @apply glass-panel text-white rounded-2xl rounded-bl-none;
+}
+
+.mobile-header-blur {
+  @apply sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5;
+}
