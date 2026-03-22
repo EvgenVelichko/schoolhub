@@ -72,7 +72,16 @@ export default function ProfilePage() {
 
   if (profileLoading) return <div className="h-screen flex items-center justify-center bg-[#0a0512]"><Loader2 className="animate-spin text-primary size-12" /></div>
 
-  if (!user || !profile) return <div className="p-6 text-center text-white">Будь ласка, увійдіть в систему.</div>
+  if (!user || !profile) {
+    return (
+      <div className="h-[70vh] flex flex-col items-center justify-center gap-4 p-6 text-center text-white">
+        <p>Будь ласка, увійдіть в систему.</p>
+        <Button className="cyber-gradient border-0" onClick={() => router.push("/auth")}>
+          Перейти до входу
+        </Button>
+      </div>
+    )
+  }
 
   const isOwner = profile?.role === 'owner';
   const hasAura = profile?.purchasedItems?.includes('aura_gold') || isOwner;

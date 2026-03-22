@@ -9,9 +9,26 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "@/hooks/use-toast"
 import { useUser, useFirestore } from "@/firebase"
-import { doc, collection, writeBatch, serverTimestamp } from "firebase/firestore"
+import { doc, collection, writeBatch, serverTimestamp, Firestore, getDocs } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { syncWithNzPortal } from "@/app/actions/nz-sync"
+
+const MAX_BATCH_OPS = 499;
+
+async function commitInChunks(db: Firestore, ops: Array<{ type: 'set' | 'update'; ref: any; data: any; options?: any }>) {
+  for (let i = 0; i < ops.length; i += MAX_BATCH_OPS) {
+    const chunk = ops.slice(i, i + MAX_BATCH_OPS);
+    const batch = writeBatch(db);
+    for (const op of chunk) {
+      if (op.type === 'set') {
+        batch.set(op.ref, op.data, op.options || {});
+      } else {
+        batch.update(op.ref, op.data);
+      }
+    }
+    await batch.commit();
+  }
+}
 
 export default function SyncPage() {
   const { user } = useUser()
@@ -24,32 +41,41 @@ export default function SyncPage() {
   const [progress, setProgress] = React.useState(0)
   const [status, setStatus] = React.useState("")
 
-  const ensureClassroomGroup = async (batch: any, userId: string, userName: string, schoolId: string, schoolName: string, gradeLevel: string) => {
-    if (!schoolId || !gradeLevel) return;
-    
+  const getClassroomOps = (userId: string, userName: string, schoolId: string, schoolName: string, gradeLevel: string) => {
+    if (!schoolId || !gradeLevel) return [];
+
     const normalizedClass = (gradeLevel || "Клас").toString().trim().replace(/\s+/g, '-').toUpperCase();
     const groupId = `class-${schoolId}-${normalizedClass}`;
     const groupRef = doc(db, "groups", groupId);
-    
-    batch.set(groupRef, {
-      name: (gradeLevel || "Клас").toString().trim(),
-      type: "classroom",
-      mode: "group",
-      schoolId: String(schoolId),
-      schoolName: schoolName || "Моя школа",
-      createdAt: serverTimestamp(),
-      admins: [userId]
-    }, { merge: true });
-
     const membershipRef = doc(db, "users", userId, "memberships", groupId);
-    batch.set(membershipRef, { 
-      joinedAt: serverTimestamp(),
-      id: groupId,
-      name: (gradeLevel || "Клас").toString().trim(),
-      type: "classroom" 
-    }, { merge: true });
 
-    return groupId;
+    return [
+      {
+        type: 'set' as const,
+        ref: groupRef,
+        data: {
+          name: (gradeLevel || "Клас").toString().trim(),
+          type: "classroom",
+          mode: "group",
+          schoolId: String(schoolId),
+          schoolName: schoolName || "Моя школа",
+          createdAt: serverTimestamp(),
+          admins: [userId]
+        },
+        options: { merge: true }
+      },
+      {
+        type: 'set' as const,
+        ref: membershipRef,
+        data: {
+          joinedAt: serverTimestamp(),
+          id: groupId,
+          name: (gradeLevel || "Клас").toString().trim(),
+          type: "classroom"
+        },
+        options: { merge: true }
+      }
+    ];
   };
 
   const handleSync = async () => {
@@ -73,8 +99,19 @@ export default function SyncPage() {
       setStatus("Обробка оцінок...")
 
       const { data } = result;
-      const batch = writeBatch(db);
-      
+      const ops: Array<{ type: 'set' | 'update'; ref: any; data: any; options?: any }> = [];
+
+      // Delete all existing grades to prevent duplicates from old sourceKey formats.
+      const existingGrades = await getDocs(collection(db, "users", user.uid, "grades"));
+      const deleteRefs: any[] = [];
+      existingGrades.forEach(d => deleteRefs.push(d.ref));
+      for (let i = 0; i < deleteRefs.length; i += MAX_BATCH_OPS) {
+        const chunk = deleteRefs.slice(i, i + MAX_BATCH_OPS);
+        const delBatch = writeBatch(db);
+        chunk.forEach(ref => delBatch.delete(ref));
+        await delBatch.commit();
+      }
+
       let totalXp = 0;
       let totalScore = 0;
       let scoreCount = 0;
@@ -86,10 +123,9 @@ export default function SyncPage() {
           scoreCount++;
           totalXp += (scoreVal * 10);
         }
-        // Фікс Reserved ID: додаємо префікс grd_
-        const rawId = `${g.subject}_${g.date}_${g.type}_${g.score}`;
+        const rawId = g.sourceKey || `${g.subject}_${g.date}_${g.type}_${g.score}`;
         const safeId = "grd_" + rawId.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').toLowerCase();
-        batch.set(doc(db, "users", user.uid, "grades", safeId), { ...g, syncedAt: serverTimestamp() }, { merge: true });
+        ops.push({ type: 'set', ref: doc(db, "users", user.uid, "grades", safeId), data: { ...g, timestamp: g.timestamp, syncedAt: serverTimestamp() } });
       });
 
       const avgScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 1;
@@ -97,31 +133,34 @@ export default function SyncPage() {
       setProgress(60)
       setStatus("Оновлення розкладу...")
       data.lessons.forEach(l => {
-        // Фікс Reserved ID: додаємо префікс lsn_
         const rawId = `${l.date}_${l.order}`;
         const safeId = "lsn_" + rawId.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').toLowerCase();
-        batch.set(doc(db, "users", user.uid, "lessons", safeId), { ...l, syncedAt: serverTimestamp() }, { merge: true });
+        ops.push({ type: 'set', ref: doc(db, "users", user.uid, "lessons", safeId), data: { ...l, syncedAt: serverTimestamp() }, options: { merge: true } });
       });
 
       setProgress(85)
       setStatus("Підключення до кімнати класу...")
-      await ensureClassroomGroup(batch, user.uid, data.studentName || user.displayName || "Учень", data.schoolId, data.schoolName, data.gradeLevel);
+      ops.push(...getClassroomOps(user.uid, data.studentName || user.displayName || "Учень", data.schoolId, data.schoolName, data.gradeLevel));
 
-      batch.update(doc(db, "users", user.uid), {
-        displayName: data.studentName || user.displayName,
-        gradeLevel: (data.gradeLevel || "Клас").toString().trim(),
-        schoolId: String(data.schoolId),
-        schoolName: data.schoolName,
-        isNzConnected: true,
-        nzLogin: login,
-        nzPassword: password,
-        academicStatus: avgScore >= 10 ? "Відмінник" : avgScore >= 7 ? "Хорошист" : "Потребує уваги",
-        level: avgScore,
-        xp: totalXp,
-        lastSync: new Date().toISOString()
+      ops.push({
+        type: 'update',
+        ref: doc(db, "users", user.uid),
+        data: {
+          displayName: data.studentName || user.displayName,
+          gradeLevel: (data.gradeLevel || "Клас").toString().trim(),
+          schoolId: String(data.schoolId),
+          schoolName: data.schoolName,
+          isNzConnected: true,
+          nzLogin: login,
+          nzPassword: password,
+          academicStatus: avgScore >= 10 ? "Відмінник" : avgScore >= 7 ? "Хорошист" : "Потребує уваги",
+          level: avgScore,
+          xp: totalXp,
+          lastSync: new Date().toISOString()
+        }
       });
 
-      await batch.commit();
+      await commitInChunks(db, ops);
       
       setProgress(100)
       setStatus("Готово!")

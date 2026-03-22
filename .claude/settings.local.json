@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh search:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:fussuchalice.github.io)",
+      "WebFetch(domain:nz-uapy.readthedocs.io)",
+      "Bash(npx next:*)",
+      "WebFetch(domain:pypi.org)",
+      "Bash(where:*)",
+      "Bash(cmd.exe:*)"
+    ]
+  }
+}
