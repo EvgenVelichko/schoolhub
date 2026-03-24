@@ -138,20 +138,20 @@ export default function PlayZone() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 animate-reveal pb-32">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="size-12 rounded-xl bg-white/5" onClick={() => setActiveGame('none')}>
-            <ChevronLeft className="size-6 text-white" />
+    <div className="p-3 sm:p-4 md:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-8 animate-reveal pb-32">
+      <header className="flex items-center justify-between gap-3 sm:gap-6">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Button variant="ghost" size="icon" className="size-10 sm:size-12 rounded-xl bg-white/5" onClick={() => setActiveGame('none')}>
+            <ChevronLeft className="size-5 sm:size-6 text-white" />
           </Button>
           <div>
-            <h1 className="font-headline text-2xl md:text-4xl font-bold text-white">Зона <span className="text-primary">Ігор</span></h1>
-            <p className="text-muted-foreground text-xs uppercase font-black">Розважайся з розумом</p>
+            <h1 className="font-headline text-xl sm:text-2xl md:text-4xl font-bold text-white">Зона <span className="text-primary">Ігор</span></h1>
+            <p className="text-muted-foreground text-[10px] sm:text-xs uppercase font-black">Розважайся з розумом</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 px-6 py-3 rounded-2xl">
-          <Coins className="size-5 text-yellow-500" />
-          <span className="font-black text-white text-lg">{isOwner ? "∞" : (profile?.coins || 0)}</span>
+        <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 px-3 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl shrink-0">
+          <Coins className="size-4 sm:size-5 text-yellow-500" />
+          <span className="font-black text-white text-base sm:text-lg">{isOwner ? "∞" : (profile?.coins || 0)}</span>
         </div>
       </header>
 
@@ -159,7 +159,7 @@ export default function PlayZone() {
         {activeGame === 'none' && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
           >
             <GameCard title="AI Вікторина" desc="ПОКИ В РОЗРОБЦІ" icon={<Lock className="size-8 text-muted-foreground" />} onPlay={() => toast({title: "В розробці"})} tags={["Coming Soon"]} disabled />
             <GameCard title="Memory 4x4" desc="Ускладнений тренажер пам'яті." icon={<Binary className="size-8 text-indigo-400" />} onPlay={() => { setActiveGame('memory'); generateSequence(2); setScore(0); }} tags={["Hardcore", "+30 Coins"]} />
@@ -231,12 +231,12 @@ export default function PlayZone() {
 
 function GameCard({ title, desc, icon, onPlay, tags, disabled }: { title: string, desc: string, icon: React.ReactNode, onPlay: () => void, tags: string[], disabled?: boolean }) {
   return (
-    <Card className={cn("glass-panel flex flex-col border-0 p-8 rounded-[2.5rem] shadow-xl h-full group overflow-hidden", disabled && "opacity-50 grayscale")}>
-      <div className="size-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-all">{icon}</div>
-      <h3 className="font-headline text-2xl text-white font-bold mb-3 uppercase">{title}</h3>
-      <p className="text-muted-foreground mb-8 text-sm leading-relaxed flex-1">{desc}</p>
-      <div className="flex flex-wrap gap-2 mb-10">{tags.map(tag => <Badge key={tag} variant="outline" className="text-[9px] uppercase font-black px-3 bg-white/5 border-white/10">{tag}</Badge>)}</div>
-      <Button disabled={disabled} className="w-full h-16 rounded-2xl cyber-gradient text-white font-black uppercase tracking-widest shadow-lg" onClick={onPlay}>{disabled ? "ЗАКРИТО" : "ГРАТИ"}</Button>
+    <Card className={cn("glass-panel flex flex-col border-0 p-5 sm:p-6 md:p-8 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] shadow-xl h-full group overflow-hidden", disabled && "opacity-50 grayscale")}>
+      <div className="size-12 sm:size-14 md:size-16 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 sm:mb-6 md:mb-8 group-hover:scale-110 transition-all">{icon}</div>
+      <h3 className="font-headline text-lg sm:text-xl md:text-2xl text-white font-bold mb-2 sm:mb-3 uppercase">{title}</h3>
+      <p className="text-muted-foreground mb-4 sm:mb-8 text-xs sm:text-sm leading-relaxed flex-1">{desc}</p>
+      <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-4 sm:mb-10">{tags.map(tag => <Badge key={tag} variant="outline" className="text-[8px] sm:text-[9px] uppercase font-black px-2 sm:px-3 bg-white/5 border-white/10">{tag}</Badge>)}</div>
+      <Button disabled={disabled} className="w-full h-12 sm:h-14 md:h-16 rounded-xl sm:rounded-2xl cyber-gradient text-white font-black uppercase tracking-widest shadow-lg text-xs sm:text-sm" onClick={onPlay}>{disabled ? "ЗАКРИТО" : "ГРАТИ"}</Button>
     </Card>
   )
 }

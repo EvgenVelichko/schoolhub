@@ -89,7 +89,7 @@ export default function SyncPage() {
     setStatus("Авторизація на NZ.ua...")
 
     try {
-      const result = await syncWithNzPortal(login, password);
+      const result = await syncWithNzPortal(login, password, { deep: true });
 
       if (!result || !result.success || !result.data) {
         throw new Error(result?.error || "Невірні дані nz.ua");

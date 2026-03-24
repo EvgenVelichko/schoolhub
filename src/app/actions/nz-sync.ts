@@ -1,345 +1,348 @@
 'use server';
 import { spawn } from 'node:child_process';
 
-/**
- * @fileOverview Удосконалений синхронізатор NZ.UA Mobile API v2.
- * Тепер автоматично додає "Фізику" 2-м уроком по п'ятницях, якщо її немає.
- */
+// ─── NZ.ua Mobile API v2 ────────────────────────────────────────────
+// Based on real API structures from:
+//   - https://github.com/TechAngle/nz-cli   (Go, v2 API)
+//   - https://github.com/FussuChalice/OpenNZ (Dart, v1 API)
+//
+// Endpoints used:
+//   POST /v2/user/login                  → { access_token, student_id, FIO, class_name, ... }
+//   POST /v2/schedule/diary              → { dates[].calls[].subjects[].lesson[].mark }
+//   POST /v2/schedule/student-performance→ { subjects[].marks[].{value,type} }
+//   POST /v2/schedule/subject-grades     → { lessons[].{mark, lesson_date, lesson_type} }
 
-const API_BASE = 'https://api-mobile.nz.ua/v2';
-const USER_AGENT = 'NZ.UA/3.2.1 (Android 14; Pixel 8 Build/UP1A.231005.007)';
+const API = 'https://api-mobile.nz.ua/v2';
 
-const HEADERS = {
-  'User-Agent': USER_AGENT,
-  'Accept': 'application/json',
+const BASE_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',
-  'Accept-Language': 'uk-UA,uk;q=0.9',
+  'Accept': 'application/json',
+  'Accept-Charset': 'utf-8',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Connection': 'Keep-Alive',
 };
 
-async function parseApiResponse(res: Response, context: string) {
-  const raw = await res.text();
-  const text = raw.trim();
-  const contentType = (res.headers.get('content-type') || '').toLowerCase();
-  const looksLikeHtml =
-    text.startsWith('<!DOCTYPE') ||
-    text.startsWith('<html') ||
-    contentType.includes('text/html');
+// ─── Subject normalization ──────────────────────────────────────────
 
-  if (looksLikeHtml) {
-    throw new Error(`NZ.ua повернув HTML замість JSON (${context}).`);
-  }
+const ABBR: Record<string, string> = {
+  'укр. мова': 'Українська мова',
+  'укр.мова': 'Українська мова',
+  'українська': 'Українська мова',
+  'укр. літ.': 'Українська література',
+  'укр.літ.': 'Українська література',
+  'укр. літ': 'Українська література',
+  'зар. літ.': 'Зарубіжна література',
+  'зар.літ.': 'Зарубіжна література',
+  'зар. літ': 'Зарубіжна література',
+  'англ. мова': 'Англійська мова',
+  'англ.мова': 'Англійська мова',
+  'англійська': 'Англійська мова',
+  'нім. мова': 'Німецька мова',
+  'нім.мова': 'Німецька мова',
+  'франц. мова': 'Французька мова',
+  'франц.мова': 'Французька мова',
+  'геогр.': 'Географія',
+  'географія': 'Географія',
+  'геогр': 'Географія',
+  'іст. укр.': 'Історія України',
+  'іст.укр.': 'Історія України',
+  'всесв. іст.': 'Всесвітня історія',
+  'всесв.іст.': 'Всесвітня історія',
+  'історія': 'Історія',
+  'матем.': 'Математика',
+  'математика': 'Математика',
+  'алгебра': 'Алгебра',
+  'геометрія': 'Геометрія',
+  'фізика': 'Фізика',
+  'хімія': 'Хімія',
+  'біологія': 'Біологія',
+  'біол.': 'Біологія',
+  'інформ.': 'Інформатика',
+  'інформатика': 'Інформатика',
+  'фізкульт.': 'Фізкультура',
+  'фізкультура': 'Фізкультура',
+  "осн. здор.": "Основи здоров'я",
+  'мистецтво': 'Мистецтво',
+  'музика': 'Музика',
+  'труд. навч.': 'Трудове навчання',
+  'трудове': 'Трудове навчання',
+};
 
-  try {
-    return text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error(`NZ.ua повернув невалідний JSON (${context}).`);
-  }
+function norm(raw: string): string {
+  if (!raw) return '';
+  const s = raw.trim().replace(/\s+/g, ' ');
+  return ABBR[s.toLowerCase()] ?? s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-async function requestJsonWithCurl(
-  url: string,
-  payload: Record<string, unknown>,
-  headers: Record<string, string>,
-  context: string
-) {
-  const curlBinary = process.platform === 'win32' ? 'curl.exe' : 'curl';
+// ─── Network ────────────────────────────────────────────────────────
+
+function parseJson(raw: string, tag: string): any {
+  const t = raw.trim();
+  if (!t) throw new Error(`Порожня відповідь (${tag})`);
+  if (t[0] === '<') throw new Error(`NZ.ua повернув HTML (${tag})`);
+  try { return JSON.parse(t); }
+  catch { throw new Error(`Невалідний JSON (${tag})`); }
+}
+
+async function post(url: string, body: Record<string, unknown>, headers: Record<string, string>, tag: string): Promise<any> {
+  // 1) try fetch
+  try {
+    const res = await fetch(url, {
+      method: 'POST', headers,
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    });
+    const raw = await res.text();
+    try { return parseJson(raw, tag); }
+    catch { /* HTML / bad JSON → fall through to curl */ }
+  } catch { /* network error → curl */ }
+
+  // 2) curl fallback (Cloudflare sometimes blocks node fetch)
+  const bin = process.platform === 'win32' ? 'curl.exe' : 'curl';
   const args = ['-sS', '--max-time', '30', '-X', 'POST', url];
+  for (const [k, v] of Object.entries(headers)) args.push('-H', `${k}: ${v}`);
+  args.push('--data-raw', JSON.stringify(body));
 
-  for (const [key, value] of Object.entries(headers)) {
-    args.push('-H', `${key}: ${value}`);
-  }
-
-  args.push('--data-raw', JSON.stringify(payload));
-
-  const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve) => {
-    const proc = spawn(curlBinary, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (chunk) => (stdout += chunk.toString()));
-    proc.stderr.on('data', (chunk) => (stderr += chunk.toString()));
-    proc.on('close', (code) => resolve({ code, stdout, stderr }));
-    proc.on('error', () => resolve({ code: -1, stdout, stderr: `Не вдалося запустити ${curlBinary}` }));
+  const r = await new Promise<{ code: number | null; out: string; err: string }>(res => {
+    const p = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '', err = '';
+    p.stdout.on('data', c => (out += c));
+    p.stderr.on('data', c => (err += c));
+    p.on('close', code => res({ code, out, err }));
+    p.on('error', () => res({ code: -1, out, err: `cannot run ${bin}` }));
   });
-
-  if (result.code !== 0) {
-    throw new Error(`Помилка запиту до NZ.ua (${context}): ${result.stderr || `exit code ${result.code}`}`);
-  }
-
-  const text = result.stdout.trim();
-  if (!text) throw new Error(`Порожня відповідь NZ.ua (${context})`);
-  if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
-    throw new Error(`NZ.ua повернув HTML замість JSON (${context}) навіть через curl.`);
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error(`NZ.ua повернув невалідний JSON (${context}) через curl.`);
-  }
+  if (r.code !== 0) throw new Error(`curl failed (${tag}): ${r.err || r.code}`);
+  return parseJson(r.out, tag);
 }
 
-async function requestJson(
-  url: string,
-  payload: Record<string, unknown>,
-  headers: Record<string, string>,
-  context: string
-) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-    cache: 'no-store'
-  });
+// ─── Helpers ────────────────────────────────────────────────────────
+
+function dateTs(d: string): number {
+  return new Date(d + 'T12:00:00').getTime();
+}
+
+function joinHw(parts: string[]): string {
+  return [...new Set(parts)].filter(Boolean).join('; ').trim();
+}
+
+function textOf(v: any): string {
+  if (!v) return '';
+  if (typeof v === 'string') return v.trim();
+  if (Array.isArray(v)) return v.filter(Boolean).map(i => String(i).trim()).filter(Boolean).join('; ');
+  return '';
+}
+
+// ─── Main sync ──────────────────────────────────────────────────────
+
+export async function syncWithNzPortal(login: string, pass: string, opts?: { deep?: boolean }) {
+  const log: string[] = [];
 
   try {
-    const data = await parseApiResponse(res, context);
-    return { ok: res.ok, data };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes('HTML замість JSON')) {
-      const data = await requestJsonWithCurl(url, payload, headers, context);
-      return { ok: true, data };
+    // ── 1. Login ──
+    const me = await post(
+      `${API}/user/login`,
+      { username: login, password: pass, exponentPushToken: '' },
+      BASE_HEADERS,
+      'login',
+    );
+    if (!me.access_token) {
+      throw new Error(me.error_message || 'Невірний логін або пароль nz.ua');
     }
-    throw error;
-  }
-}
 
-/**
- * Parse a date string like "2026-03-22" into a UTC-safe timestamp.
- * new Date("2026-03-22") is treated as UTC midnight, which in UTC+2/+3
- * becomes the previous day. Adding T12:00:00 avoids the day shift.
- */
-function safeDateTs(dateStr: string): number {
-  return new Date(dateStr + 'T12:00:00').getTime();
-}
+    const studentId: number = me.student_id;
+    const authHeaders = { ...BASE_HEADERS, Authorization: `Bearer ${me.access_token}` };
 
-function safeExtractText(val: any): string {
-  if (!val) return "";
-  if (Array.isArray(val)) {
-    return val
-      .filter(item => item !== null && item !== undefined)
-      .map(item => {
-        if (typeof item === 'object') return JSON.stringify(item);
-        return String(item).trim();
-      })
-      .filter(Boolean)
-      .join("; ");
-  }
-  if (typeof val === 'string') return val.trim();
-  if (typeof val === 'object') return JSON.stringify(val);
-  return String(val).trim();
-}
+    // ── Date range: Sep 1 → now + 7 days ──
+    const now = new Date();
+    const yearStart = now.getMonth() < 8 ? now.getFullYear() - 1 : now.getFullYear();
+    const startDate = `${yearStart}-09-01`;
+    const endDate = new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
 
-/**
- * Extract grades from diary data.
- * The diary is the only endpoint that ties marks to the actual calendar date
- * they were recorded on (day.date). The subject-grades endpoint returns
- * lesson_date which is the timetable date, not the real mark date.
- */
-function extractGradesFromDiary(diary: any): any[] {
-  const grades: any[] = [];
-  const gradeKeys = new Set<string>();
+    // ── 2. Diary ──
+    // Response: { dates: [{ date, calls: [{ call_number, call_time_start, call_time_end,
+    //            subjects: [{ subject_name, room, teacher:{id,name}, lesson:[{type,mark,comment}], hometask:[] }] }] }] }
+    const diary = await post(
+      `${API}/schedule/diary`,
+      { start_date: startDate, end_date: endDate, student_id: studentId },
+      authHeaders,
+      'diary',
+    );
+    if (diary.error_message) log.push(`diary warning: ${diary.error_message}`);
 
-  if (!diary?.dates) return grades;
+    const grades: any[] = [];
+    const gradeKeys = new Set<string>();
+    const lessons: any[] = [];
 
-  diary.dates.forEach((day: any) => {
-    const dateStr = day.date;
-    (day.calls || []).forEach((call: any) => {
-      const order = parseInt(call.call_number || call.number || 0);
-      (call.subjects || []).forEach((subject: any) => {
-        const lessonData = subject.lesson;
-        if (lessonData) {
-          const lessonsList = Array.isArray(lessonData) ? lessonData : [lessonData];
-          lessonsList.forEach((l: any, lessonIdx: number) => {
-            // v2 diary: mark is a plain string ("8"), type is "Поточна"
-            const score = l.mark;
-            if (!score || typeof score !== 'string' || score.trim() === '') return;
+    // Collect subject_id mapping from performance for deep fetch
+    const subjectIdMap = new Map<string, string>(); // subject_name → subject_id
 
-            const gradeType = l.type || "Урок";
-            const sourceKey = `${dateStr}|${subject.subject_name}|${gradeType}|${order}_${lessonIdx}`;
+    for (const day of (diary.dates || [])) {
+      const date: string = day.date;
+      if (!date) continue;
 
-            if (!gradeKeys.has(sourceKey)) {
-              gradeKeys.add(sourceKey);
-              grades.push({
-                subject: subject.subject_name,
-                score: score.trim(),
-                date: dateStr,
-                type: gradeType,
-                timestamp: safeDateTs(dateStr) + order * 100 + lessonIdx,
-                sourceKey
-              });
+      for (const call of (day.calls || [])) {
+        const callNum = call.call_number ?? 0;
+        const timeStart: string = call.call_time_start || call.time_start || '--:--';
+        const timeEnd: string = call.call_time_end || call.time_end || '--:--';
+
+        for (const subj of (call.subjects || [])) {
+          const name = norm(subj.subject_name);
+          if (!name) continue;
+
+          // -- Extract marks from lesson[] --
+          // API structure: lesson is always an array of { type: string, mark: string, comment: string }
+          const lessonArr: any[] = Array.isArray(subj.lesson) ? subj.lesson : (subj.lesson ? [subj.lesson] : []);
+
+          for (let li = 0; li < lessonArr.length; li++) {
+            const l = lessonArr[li];
+            const mark: string = (typeof l.mark === 'string' ? l.mark : String(l.mark ?? '')).trim();
+            if (!mark) continue;
+
+            const type: string = l.type || 'Поточна';
+            const key = `${date}|${name}|${type}|${callNum}_${li}`;
+            if (!gradeKeys.has(key)) {
+              gradeKeys.add(key);
+              grades.push({ subject: name, score: mark, date, type, timestamp: dateTs(date) + callNum * 100 + li, sourceKey: key });
             }
+          }
+
+          // -- Build lesson card --
+          const hwParts: string[] = [];
+          // hometask is string[] per API
+          if (Array.isArray(subj.hometask)) {
+            subj.hometask.forEach((h: any) => { const t = textOf(h); if (t) hwParts.push(t); });
+          }
+          // Also check inside lesson[].comment for homework-like text
+          for (const l of lessonArr) {
+            if (l.comment) { const t = textOf(l.comment); if (t) hwParts.push(t); }
+          }
+
+          const teacherName = typeof subj.teacher === 'object' ? subj.teacher?.name : '';
+
+          lessons.push({
+            subject: name,
+            time: timeStart,
+            timeEnd: timeEnd,
+            room: subj.room || '---',
+            teacher: teacherName || 'Вчитель',
+            homework: joinHw(hwParts),
+            date,
+            order: callNum,
           });
         }
-      });
-    });
-  });
-
-  return grades;
-}
-
-export async function syncWithNzPortal(login: string, pass: string) {
-  try {
-    const loginResult = await requestJson(
-      `${API_BASE}/user/login`,
-      { username: login, password: pass, exponentPushToken: "" },
-      HEADERS,
-      'login'
-    );
-
-    const loginData = loginResult.data;
-    if (!loginResult.ok || !loginData.access_token) {
-      throw new Error(loginData.error_message || 'Невірний логін або пароль nz.ua');
+      }
     }
+    log.push(`diary: ${grades.length} grades, ${lessons.length} lessons`);
 
-    const authHeaders = {
-      ...HEADERS,
-      'Authorization': `Bearer ${loginData.access_token}`
-    };
+    // ── 3. Student-performance ──
+    // Response: { subjects: [{ subject_id, subject_name, subject_shortname,
+    //             marks: [{ value: "10", type: "Поточна" }] }], missed: { days, lessons } }
+    // v1 difference: marks is just string[] like ["10","7"]
+    // We handle both formats.
+    try {
+      const perf = await post(
+        `${API}/schedule/student-performance`,
+        { start_date: startDate, end_date: endDate, student_id: studentId },
+        authHeaders,
+        'performance',
+      );
 
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
+      if (perf.subjects && Array.isArray(perf.subjects)) {
+        for (const s of perf.subjects) {
+          const name = norm(s.subject_name || '');
+          if (!name) continue;
 
-    let startYear = currentYear;
-    if (currentMonth < 8) {
-      startYear = currentYear - 1;
-    }
+          // Save subject_id for deep fetch
+          if (s.subject_id) subjectIdMap.set(s.subject_name, s.subject_id);
 
-    const start = `${startYear}-09-01`;
-    const futureDate = new Date();
-    futureDate.setDate(now.getDate() + 7);
-    const end = futureDate.toISOString().split('T')[0];
+          // Performance marks don't have dates — they are summary marks for the period.
+          // We can't add them as individual dated grades. But if diary missed them entirely,
+          // we still want them. We'll use a synthetic key with no date — these won't appear
+          // in the date-filtered view but will count toward averages.
+          if (!Array.isArray(s.marks)) continue;
 
-    const diaryResult = await requestJson(
-      `${API_BASE}/schedule/diary`,
-      { start_date: start, end_date: end },
-      authHeaders,
-      'schedule/diary'
-    );
+          for (let i = 0; i < s.marks.length; i++) {
+            const m = s.marks[i];
+            // v2: mark is { value, type }, v1: mark is plain string
+            const mark: string = (typeof m === 'object' ? m.value : String(m)).trim();
+            const type: string = typeof m === 'object' ? (m.type || 'Поточна') : 'Поточна';
+            if (!mark || mark === 'Н' || mark === 'H') continue; // "Н" = absent
 
-    if (!diaryResult.ok) throw new Error('Помилка отримання даних щоденника');
-    const diary = diaryResult.data;
+            // Performance doesn't give us individual dates.
+            // Only add if we don't already have enough marks for this subject from diary.
+            const existingForSubject = grades.filter(g => g.subject === name).length;
+            if (i < existingForSubject) continue; // diary already has this many marks
 
-    // DEBUG: dump raw diary structure for the most recent 2 days that have marks
-    const debugDays: any[] = [];
-    if (diary.dates) {
-      for (const day of diary.dates) {
-        for (const call of (day.calls || [])) {
-          for (const subj of (call.subjects || [])) {
-            if (subj.lesson) {
-              const lArr = Array.isArray(subj.lesson) ? subj.lesson : [subj.lesson];
-              for (const l of lArr) {
-                if (l.mark && String(l.mark).trim() !== '') {
-                  debugDays.push({
-                    _dayDate: day.date,
-                    _callNumber: call.call_number || call.number,
-                    _subjectName: subj.subject_name,
-                    _subjectKeys: Object.keys(subj),
-                    _lessonKeys: Object.keys(l),
-                    _lessonFull: l,
-                    _subjectFull: { ...subj, lesson: '<<omitted>>' }
-                  });
-                }
-              }
+            const key = `perf|${name}|${type}|${i}`;
+            if (!gradeKeys.has(key)) {
+              gradeKeys.add(key);
+              // Use startDate as fallback date so it doesn't break date formatting
+              grades.push({ subject: name, score: mark, date: startDate, type, timestamp: dateTs(startDate) + i, sourceKey: key });
             }
           }
         }
       }
+      log.push(`performance: ${perf.subjects?.length ?? 0} subjects`);
+    } catch {
+      log.push('performance: endpoint unavailable');
     }
-    console.log('=== NZ DEBUG: days with marks (last 10) ===');
-    console.log(JSON.stringify(debugDays.slice(-10), null, 2));
-    console.log('=== NZ DEBUG END ===');
 
-    const grades: any[] = extractGradesFromDiary(diary);
+    // ── 4. Subject-grades (deep fetch, initial sync only) ──
+    // Response: { lessons: [{ mark, lesson_date, lesson_type, lesson_id, subject, comment }],
+    //             number_missed_lessons: 0 }
+    // This is the BEST source for detailed grades — has date + type per mark.
+    if (opts?.deep) {
+      let deepAdded = 0;
 
-    const lessons: any[] = [];
-    const datesProcessed = new Set<string>();
+      for (const [rawName, subjectId] of subjectIdMap) {
+        try {
+          const sg = await post(
+            `${API}/schedule/subject-grades`,
+            { start_date: startDate, end_date: endDate, student_id: studentId, subject_id: subjectId },
+            authHeaders,
+            `grades/${rawName}`,
+          );
 
-    if (diary.dates) {
-      diary.dates.forEach((day: any) => {
-        const dateStr = day.date;
-        datesProcessed.add(dateStr);
-        (day.calls || []).forEach((call: any) => {
-          const order = parseInt(call.call_number || call.number || 0);
-          (call.subjects || []).forEach((subject: any) => {
-            let homeworkParts: string[] = [];
+          const name = norm(rawName);
+          const sgLessons: any[] = sg.lessons || [];
 
-            const fieldNames = ['homework', 'hometask', 'task', 'description', 'comment'];
-            fieldNames.forEach(field => {
-              if (subject[field]) homeworkParts.push(safeExtractText(subject[field]));
-            });
+          for (let i = 0; i < sgLessons.length; i++) {
+            const l = sgLessons[i];
+            const mark: string = (typeof l.mark === 'string' ? l.mark : String(l.mark ?? '')).trim();
+            const date: string = l.lesson_date || '';
+            if (!mark || !date) continue;
 
-            const lessonData = subject.lesson;
-            if (lessonData) {
-              const lessonsList = Array.isArray(lessonData) ? lessonData : [lessonData];
-              lessonsList.forEach((l: any) => {
-                fieldNames.forEach(field => {
-                  if (l[field]) homeworkParts.push(safeExtractText(l[field]));
-                });
-              });
+            const type: string = l.lesson_type || 'Поточна';
+            const key = `${date}|${name}|${type}|sg_${l.lesson_id || i}`;
+            if (!gradeKeys.has(key)) {
+              gradeKeys.add(key);
+              grades.push({ subject: name, score: mark, date, type, timestamp: dateTs(date) + i, sourceKey: key });
+              deepAdded++;
             }
-
-            const homework = Array.from(new Set(homeworkParts))
-              .filter(Boolean)
-              .join("; ");
-
-            // v2 diary: room is a string, teacher is {id, name}
-            const teacherName = typeof subject.teacher === 'object'
-              ? subject.teacher?.name
-              : subject.teacher_name || subject.teacher;
-
-            lessons.push({
-              subject: subject.subject_name,
-              time: call.call_time_start || call.time_start || "--:--",
-              timeEnd: call.call_time_end || call.time_end || "--:--",
-              room: subject.room || subject.room_name || "---",
-              teacher: teacherName || "Вчитель",
-              homework: homework.trim(),
-              date: dateStr,
-              order
-            });
-          });
-        });
-      });
-
-      // Вручну додаємо Фізику по п'ятницях 2-м уроком, якщо її немає
-      datesProcessed.forEach(d => {
-        const dObj = new Date(d + 'T12:00:00');
-        if (dObj.getDay() === 5) { // П'ятниця
-          const hasPhysicsOnTwo = lessons.some(l => l.date === d && l.order === 2);
-          if (!hasPhysicsOnTwo) {
-            lessons.push({
-              subject: "Фізика",
-              time: "09:15",
-              timeEnd: "10:00",
-              room: "302",
-              teacher: "Вчитель фізики",
-              homework: "Опрацювати параграф (додано вручну)",
-              date: d,
-              order: 2
-            });
           }
+        } catch {
+          // Some subjects may not have this endpoint
         }
-      });
+      }
+      log.push(`subject-grades: +${deepAdded}`);
     }
+
+    log.push(`total: ${grades.length} grades, ${lessons.length} lessons`);
 
     return {
       success: true,
+      log,
       data: {
-        studentName: loginData.FIO || "Учень",
-        gradeLevel: (loginData.class_name || "Клас").toString().trim(),
-        schoolId: String(loginData.school_id || "default_school"),
-        schoolName: loginData.school_name || "Моя школа",
-        lessons: lessons,
-        grades: grades,
-        tokens: {
-          access: loginData.access_token,
-          refresh: loginData.refresh_token
-        }
-      }
+        studentName: me.FIO || 'Учень',
+        gradeLevel: String(me.class_name || 'Клас').trim(),
+        schoolId: String(me.school_id || 'default_school'),
+        schoolName: me.school_name || 'Моя школа',
+        lessons,
+        grades,
+        tokens: { access: me.access_token, refresh: me.refresh_token },
+      },
     };
   } catch (e: any) {
-    return { success: false, error: e.message };
+    return { success: false, error: e.message, log };
   }
 }

@@ -51,6 +51,11 @@
     background-attachment: fixed;
     overflow-x: hidden;
   }
+
+  /* Smooth scrolling everywhere */
+  *, *::before, *::after {
+    scroll-behavior: smooth;
+  }
 }
 
 @layer utilities {
@@ -124,4 +129,104 @@
 
 .mobile-header-blur {
   @apply sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5;
+}
+
+/* Matrix Effect */
+.matrix-rain {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.matrix-rain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 255, 65, 0.03) 100%);
+  z-index: 1;
+}
+
+.matrix-column {
+  position: absolute;
+  top: -100%;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.2;
+  color: rgba(0, 255, 65, 0.7);
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.5), 0 0 16px rgba(0, 255, 65, 0.2);
+  writing-mode: vertical-lr;
+  white-space: nowrap;
+  animation: matrix-fall linear infinite;
+  opacity: 0.6;
+}
+
+.matrix-column:nth-child(odd) {
+  color: rgba(0, 255, 65, 0.4);
+  font-size: 12px;
+}
+
+.matrix-column:nth-child(3n) {
+  color: rgba(0, 200, 65, 0.9);
+  text-shadow: 0 0 12px rgba(0, 255, 65, 0.8);
+}
+
+@keyframes matrix-fall {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(calc(100vh + 100%)); }
+}
+
+/* Ghost Mode */
+.ghost-shimmer {
+  position: relative;
+}
+
+.ghost-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  background: linear-gradient(45deg, transparent, rgba(148, 163, 184, 0.15), transparent, rgba(148, 163, 184, 0.1), transparent);
+  background-size: 300%;
+  border-radius: inherit;
+  z-index: -1;
+  filter: blur(6px);
+  animation: ghost-shimmer-anim 4s ease-in-out infinite;
+  opacity: 0.5;
+}
+
+@keyframes ghost-shimmer-anim {
+  0%, 100% { background-position: 0% 50%; opacity: 0.3; }
+  50% { background-position: 100% 50%; opacity: 0.6; }
+}
+
+.ghost-text {
+  color: rgba(148, 163, 184, 0.6) !important;
+  text-shadow: 0 0 10px rgba(148, 163, 184, 0.3);
+}
+
+/* Safe area padding for mobile bottom nav */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
+}
+
+/* Better touch targets */
+@media (hover: none) and (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Floating animation for active nav items */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.animate-float {
+  animation: float 2s ease-in-out infinite;
 }

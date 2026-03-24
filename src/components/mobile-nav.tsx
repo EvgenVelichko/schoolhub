@@ -17,19 +17,19 @@ const navItems = [
 
 export function MobileNav() {
   const pathname = usePathname()
-  
+
   if (pathname === '/auth' || pathname?.startsWith('/chat')) return null
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0512]/90 backdrop-blur-2xl border-t border-white/5 h-20 px-2 flex items-center justify-around z-[100] pb-2">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0512]/95 backdrop-blur-2xl border-t border-white/5 px-1 sm:px-2 flex items-start justify-around z-[100] safe-bottom pt-2 pb-3">
       {navItems.map((item) => {
         const isActive = pathname === item.href
         return (
-          <Link 
-            key={item.href} 
-            href={item.href} 
+          <Link
+            key={item.href}
+            href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center gap-1.5 transition-all duration-300 w-full",
+              "flex flex-col items-center justify-center gap-1 transition-all duration-300 w-full py-1 touch-target",
               isActive ? "text-primary" : "text-muted-foreground opacity-60"
             )}
           >
@@ -39,7 +39,7 @@ export function MobileNav() {
             )}>
               <item.icon className={cn("size-5", isActive ? "animate-float" : "")} />
             </div>
-            <span className="text-[8px] font-black uppercase tracking-widest text-center">{item.label}</span>
+            <span className="text-[8px] font-black uppercase tracking-widest text-center leading-none">{item.label}</span>
           </Link>
         )
       })}

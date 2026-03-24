@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import React from "react";
 
 function MobileHeader() {
@@ -95,8 +96,16 @@ function BannedOverlay() {
 function MainLayout({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   const db = useFirestore();
+  const router = useRouter();
+  const pathname = usePathname();
   const userDocRef = React.useMemo(() => (user ? doc(db, "users", user.uid) : null), [db, user]);
-  const { data: profile } = useDoc(userDocRef);
+  const { data: profile, loading: profileLoading } = useDoc(userDocRef);
+
+  React.useEffect(() => {
+    if (profile && !profileLoading && !profile.isNzConnected && pathname !== '/sync' && pathname !== '/auth') {
+      router.replace('/sync');
+    }
+  }, [profile, profileLoading, pathname, router]);
 
   if (profile?.isBanned) {
     return <BannedOverlay />;
@@ -108,7 +117,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
         <AppSidebar />
         <main className="flex-1 flex flex-col min-w-0 relative">
           <MobileHeader />
-          <div className="flex-1 overflow-y-auto scrollbar-none outline-none overscroll-none">
+          <div className="flex-1 overflow-y-auto scrollbar-none outline-none overscroll-none scroll-smooth">
             <div className="min-h-full pb-24 md:pb-8 scrollbar-none">
               {children}
             </div>
@@ -125,7 +134,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" className="dark scrollbar-none">
+    <html lang="uk" className="dark scrollbar-none scroll-smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

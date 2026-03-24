@@ -31,10 +31,10 @@ export default function AuthPage() {
   const [password, setPassword] = React.useState("")
   const [name, setName] = React.useState("")
 
-  const initUserProfile = async (uid: string, displayName: string | null, photoURL: string | null) => {
+  const initUserProfile = async (uid: string, displayName: string | null, photoURL: string | null): Promise<{ isNew: boolean; isNzConnected: boolean }> => {
     const userRef = doc(db, "users", uid)
     const docSnap = await getDoc(userRef)
-    
+
     if (!docSnap.exists()) {
       await setDoc(userRef, {
         uid,
@@ -54,20 +54,19 @@ export default function AuthPage() {
           privateProfile: false
         }
       }, { merge: true })
-      return true;
+      return { isNew: true, isNzConnected: false };
     }
-    return false;
+    return { isNew: false, isNzConnected: docSnap.data()?.isNzConnected ?? false };
   }
 
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider()
     try {
       const result = await signInWithPopup(auth, provider)
-      const isNewUser = await initUserProfile(result.user.uid, result.user.displayName, result.user.photoURL)
+      const { isNew, isNzConnected } = await initUserProfile(result.user.uid, result.user.displayName, result.user.photoURL)
       toast({ title: "Вітаємо!", description: `Ви увійшли як ${result.user.displayName}` })
-      
-      // Фікс: Перенаправляємо на сторінку синхронізації після реєстрації
-      if (isNewUser) {
+
+      if (isNew || !isNzConnected) {
         router.push("/sync")
       } else {
         router.push("/")
@@ -91,9 +90,14 @@ export default function AuthPage() {
         toast({ title: "Успіх", description: `Аккаунт створено для ${name}` })
         router.push("/sync")
       } else {
-        await signInWithEmailAndPassword(auth, email, password)
+        const result = await signInWithEmailAndPassword(auth, email, password)
+        const { isNzConnected } = await initUserProfile(result.user.uid, result.user.displayName, result.user.photoURL)
         toast({ title: "З поверненням!", description: "Вхід виконано успішно." })
-        router.push("/")
+        if (!isNzConnected) {
+          router.push("/sync")
+        } else {
+          router.push("/")
+        }
       }
     } catch (e: any) {
       toast({ title: "Помилка", description: e.message, variant: "destructive" })
@@ -103,33 +107,33 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[#0a0512] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-6 bg-[#0a0512] relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-primary/20 blur-[150px] rounded-full animate-pulse-slow" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-secondary/20 blur-[150px] rounded-full animate-pulse-slow" />
       </div>
 
       <div className="w-full max-w-lg relative z-10 animate-reveal">
-        <div className="mb-12 flex flex-col items-center">
-          <Link href="/" className="group mb-6">
-            <div className="size-20 rounded-[1.75rem] cyber-gradient flex items-center justify-center shadow-2xl shadow-primary/40 group-hover:scale-110 transition-transform duration-500">
-              <Zap className="text-white size-10" />
+        <div className="mb-8 sm:mb-12 flex flex-col items-center">
+          <Link href="/" className="group mb-4 sm:mb-6">
+            <div className="size-16 sm:size-20 rounded-[1.25rem] sm:rounded-[1.75rem] cyber-gradient flex items-center justify-center shadow-2xl shadow-primary/40 group-hover:scale-110 transition-transform duration-500">
+              <Zap className="text-white size-8 sm:size-10" />
             </div>
           </Link>
-          <h1 className="text-5xl font-headline font-bold text-white tracking-tighter text-glow text-center">
+          <h1 className="text-3xl sm:text-5xl font-headline font-bold text-white tracking-tighter text-glow text-center">
             School <span className="text-primary">Hub</span>
           </h1>
-          <p className="text-muted-foreground mt-4 text-lg font-medium text-center max-w-xs">Увійдіть, щоб продовжити свою академічну подорож</p>
+          <p className="text-muted-foreground mt-2 sm:mt-4 text-sm sm:text-lg font-medium text-center max-w-xs">Увійдіть, щоб продовжити свою академічну подорож</p>
         </div>
 
-        <Card className="glass-panel border-white/5 border-0 shadow-2xl rounded-[2.5rem] overflow-hidden">
+        <Card className="glass-panel border-white/5 border-0 shadow-2xl rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-white/5 p-2 rounded-t-[2.5rem] rounded-b-none h-16">
-              <TabsTrigger value="login" className="rounded-2xl py-3 text-sm font-bold data-[state=active]:cyber-gradient data-[state=active]:text-white">ВХІД</TabsTrigger>
-              <TabsTrigger value="register" className="rounded-2xl py-3 text-sm font-bold data-[state=active]:cyber-gradient data-[state=active]:text-white">РЕЄСТРАЦІЯ</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 bg-white/5 p-1.5 sm:p-2 rounded-t-[2rem] sm:rounded-t-[2.5rem] rounded-b-none h-12 sm:h-16">
+              <TabsTrigger value="login" className="rounded-xl sm:rounded-2xl py-2 sm:py-3 text-xs sm:text-sm font-bold data-[state=active]:cyber-gradient data-[state=active]:text-white">ВХІД</TabsTrigger>
+              <TabsTrigger value="register" className="rounded-xl sm:rounded-2xl py-2 sm:py-3 text-xs sm:text-sm font-bold data-[state=active]:cyber-gradient data-[state=active]:text-white">РЕЄСТРАЦІЯ</TabsTrigger>
             </TabsList>
-            
-            <CardContent className="p-10">
+
+            <CardContent className="p-5 sm:p-10">
               <TabsContent value="login" className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-500">
                 <div className="space-y-5">
                   <div className="space-y-2">

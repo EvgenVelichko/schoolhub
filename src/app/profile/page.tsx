@@ -1,25 +1,26 @@
 "use client"
 
 import * as React from "react"
-import { 
-  User, 
-  Settings as SettingsIcon, 
-  Users, 
-  Trophy, 
-  Star, 
-  Coins, 
-  Edit3, 
-  MessageSquare, 
-  UserPlus,
+import {
+  User,
+  Trophy,
+  Star,
+  Coins,
+  Edit3,
   Loader2,
-  CheckCircle2,
   Camera,
   Crown,
   Flame,
   Zap,
-  ChevronLeft,
   GraduationCap,
-  Gem
+  Gem,
+  Ghost,
+  Monitor,
+  Target,
+  ShoppingCart,
+  Sunrise,
+  BookOpen,
+  Award
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,23 +28,82 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useUser, useFirestore, useDoc, useCollection } from "@/firebase"
-import { doc, updateDoc, collection, setDoc, query, where, orderBy } from "firebase/firestore"
+import { useUser, useFirestore, useDoc } from "@/firebase"
+import { doc, updateDoc } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+
+const MATRIX_CHARS = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF"
+
+function MatrixRain() {
+  const columns = React.useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      left: `${(i / 12) * 100}%`,
+      delay: `${Math.random() * 5}s`,
+      duration: `${3 + Math.random() * 4}s`,
+      chars: Array.from({ length: 20 }, () => MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]).join('\n')
+    }))
+  }, [])
+
+  return (
+    <div className="matrix-rain">
+      {columns.map(col => (
+        <div
+          key={col.id}
+          className="matrix-column"
+          style={{
+            left: col.left,
+            animationDelay: col.delay,
+            animationDuration: col.duration
+          }}
+        >
+          {col.chars}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const allAchievements = [
+  { id: 'smart_lazy', label: 'Кмітливий', icon: <Zap className="size-3.5" />, color: 'emerald' },
+  { id: 'rich_student', label: 'Багатій', icon: <Coins className="size-3.5" />, color: 'yellow' },
+  { id: 'night_owl', label: 'Нічна сова', icon: <Star className="size-3.5" />, color: 'purple' },
+  { id: 'first_sync', label: 'Перший синк', icon: <Sunrise className="size-3.5" />, color: 'sky' },
+  { id: 'top_student', label: 'Відмінник', icon: <Award className="size-3.5" />, color: 'amber' },
+  { id: 'shopaholic', label: 'Шопоголік', icon: <ShoppingCart className="size-3.5" />, color: 'pink' },
+  { id: 'game_master', label: 'Геймер', icon: <Target className="size-3.5" />, color: 'indigo' },
+  { id: 'bookworm', label: 'Книголюб', icon: <BookOpen className="size-3.5" />, color: 'teal' },
+  { id: 'vip_status', label: 'VIP', icon: <Crown className="size-3.5" />, color: 'indigo' },
+  { id: 'fire_title', label: 'Легенда', icon: <Flame className="size-3.5" />, color: 'red' },
+  { id: 'matrix_hacker', label: 'Хакер', icon: <Monitor className="size-3.5" />, color: 'green' },
+  { id: 'ghost_walker', label: 'Привид', icon: <Ghost className="size-3.5" />, color: 'slate' },
+]
+
+const colorMap: Record<string, string> = {
+  emerald: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  yellow: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30',
+  purple: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  sky: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+  amber: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
+  pink: 'bg-pink-500/15 text-pink-400 border-pink-500/30',
+  indigo: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
+  teal: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
+  red: 'bg-red-500/15 text-red-500 border-red-500/30',
+  green: 'bg-green-500/15 text-green-400 border-green-500/30',
+  slate: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+}
+
+const lockedColor = 'bg-white/[0.03] text-muted-foreground/40 border-white/5'
 
 export default function ProfilePage() {
   const router = useRouter()
   const { user } = useUser()
   const db = useFirestore()
-  
+
   const userDocRef = React.useMemo(() => (user ? doc(db, "users", user.uid) : null), [db, user])
   const { data: profile, loading: profileLoading } = useDoc(userDocRef)
-
-  const friendsQuery = React.useMemo(() => (user ? collection(db, "users", user.uid, "friends") : null), [db, user])
-  const { data: friends } = useCollection(friendsQuery)
 
   const [isEditing, setIsEditing] = React.useState(false)
   const [editedName, setEditedName] = React.useState("")
@@ -88,170 +148,184 @@ export default function ProfilePage() {
   const hasRainbowAura = profile?.purchasedItems?.includes('aura_rainbow') || isOwner;
   const hasVIP = profile?.purchasedItems?.includes('vip_status') || isOwner;
   const hasFire = profile?.purchasedItems?.includes('fire_title') || isOwner;
-  const hasStar = profile?.purchasedItems?.includes('star_badge') || isOwner;
   const hasBoost = profile?.purchasedItems?.includes('xp_boost') || isOwner;
   const hasNeon = profile?.purchasedItems?.includes('neon_name') || isOwner;
   const hasProfessor = profile?.purchasedItems?.includes('professor_badge') || isOwner;
   const hasDiamond = profile?.purchasedItems?.includes('diamond_badge') || isOwner;
+  const hasMatrix = profile?.purchasedItems?.includes('matrix_effect') || isOwner;
+  const hasGhost = profile?.purchasedItems?.includes('ghost_mode') || isOwner;
+
+  const userAchievements = profile?.achievements || [];
+  const purchasedItems = profile?.purchasedItems || [];
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 animate-reveal pb-32 overflow-x-hidden">
-      <header className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="rounded-2xl bg-white/5 hover:bg-white/10" onClick={() => router.back()}>
-          <ChevronLeft className="size-6 text-white" />
-        </Button>
-        <h1 className="text-2xl font-headline font-bold text-white uppercase tracking-tight">Профіль</h1>
-      </header>
-
+    <div className="p-3 sm:p-4 md:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-8 animate-reveal pb-32 overflow-x-hidden">
       <div className="relative">
         <div className={cn(
-          "h-48 md:h-72 rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl",
+          "h-40 sm:h-48 md:h-72 rounded-[2rem] sm:rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl",
+          hasMatrix ? "bg-gradient-to-br from-black via-green-950 to-black" :
           hasFire ? "bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500" : "cyber-gradient"
         )}>
-          {hasFire && <div className="absolute inset-0 flex items-center justify-center opacity-20"><Flame className="size-48 md:size-64 text-white animate-pulse" /></div>}
-          <div className="absolute inset-0 bg-black/15 backdrop-blur-[1px]" />
-          <div className="absolute top-6 right-6 flex gap-2 z-20">
-             <Button variant="secondary" className="bg-white/10 hover:bg-white/20 border-white/10 text-white backdrop-blur-md rounded-2xl h-12 px-6 font-bold" onClick={() => setIsEditing(!isEditing)}>
-                <Edit3 className="size-4 mr-2" /> {isEditing ? "Скасувати" : "Редагувати"}
+          {hasMatrix && <MatrixRain />}
+          {hasFire && !hasMatrix && <div className="absolute inset-0 flex items-center justify-center opacity-20"><Flame className="size-32 sm:size-48 md:size-64 text-white animate-pulse" /></div>}
+          <div className="absolute inset-0 bg-black/15 backdrop-blur-[1px] z-[2]" />
+          <div className="absolute top-3 right-3 sm:top-6 sm:right-6 flex gap-2 z-20">
+             <Button variant="secondary" className="bg-white/10 hover:bg-white/20 border-white/10 text-white backdrop-blur-md rounded-xl sm:rounded-2xl h-9 sm:h-12 px-3 sm:px-6 font-bold text-xs sm:text-sm" onClick={() => setIsEditing(!isEditing)}>
+                <Edit3 className="size-3.5 sm:size-4 mr-1.5 sm:mr-2" /> {isEditing ? "Скасувати" : "Редагувати"}
              </Button>
           </div>
         </div>
 
-        <div className="px-6 md:px-12 -mt-20 md:-mt-24 relative z-10 flex flex-col md:flex-row items-center md:items-end gap-8 text-center md:text-left">
-          <div className="relative group shrink-0">
+        <div className="px-4 sm:px-6 md:px-12 -mt-16 sm:-mt-20 md:-mt-24 relative z-10 flex flex-col md:flex-row items-center md:items-end gap-4 sm:gap-8 text-center md:text-left">
+          <div className={cn("relative group shrink-0", hasGhost && "ghost-shimmer")}>
             <Avatar className={cn(
-              "size-40 md:size-52 border-[8px] border-[#0c0805] shadow-2xl transition-all duration-500",
+              "size-28 sm:size-40 md:size-52 border-[6px] sm:border-[8px] border-[#0c0805] shadow-2xl transition-all duration-500",
               hasAura && "ring-4 ring-yellow-500 ring-offset-4 ring-offset-[#0c0805]",
-              hasRainbowAura && "aura-rainbow"
+              hasRainbowAura && "aura-rainbow",
+              hasGhost && "opacity-80"
             )}>
               <AvatarImage src={profile.photoURL} className="object-cover" />
-              <AvatarFallback className="text-6xl bg-primary/20 text-primary font-bold">{profile.displayName?.[0]}</AvatarFallback>
+              <AvatarFallback className="text-4xl sm:text-6xl bg-primary/20 text-primary font-bold">{profile.displayName?.[0]}</AvatarFallback>
             </Avatar>
             {isEditing && (
               <button className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera className="size-10" />
+                <Camera className="size-8 sm:size-10" />
               </button>
             )}
+            {hasGhost && (
+              <div className="absolute -bottom-1 -right-1 size-8 sm:size-10 rounded-full bg-slate-800 border-2 border-[#0c0805] flex items-center justify-center">
+                <Ghost className="size-4 sm:size-5 text-slate-400" />
+              </div>
+            )}
           </div>
-          <div className="flex-1 pb-4 md:pb-6 space-y-4">
-             <div className="flex flex-col md:flex-row md:items-center gap-4 justify-center md:justify-start">
+          <div className="flex-1 pb-2 sm:pb-4 md:pb-6 space-y-3 sm:space-y-4 min-w-0">
+             <div className="flex flex-col md:flex-row md:items-center gap-2 sm:gap-4 justify-center md:justify-start">
                <h1 className={cn(
-                 "text-4xl md:text-5xl font-headline font-bold text-white tracking-tighter leading-none px-1",
-                 hasNeon && "neon-text-orange"
+                 "text-2xl sm:text-4xl md:text-5xl font-headline font-bold text-white tracking-tighter leading-none px-1",
+                 hasNeon && "neon-text-orange",
+                 hasGhost && "ghost-text"
                )}>
                  {profile.displayName}
                </h1>
-               <div className="flex items-center gap-3 justify-center md:justify-start">
-                  {(hasVIP || isOwner) && <Crown className="size-10 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.6)]" />}
-                  {hasProfessor && <GraduationCap className="size-10 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.6)]" />}
-                  {hasDiamond && <Gem className="size-10 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]" />}
+               <div className="flex items-center gap-2 sm:gap-3 justify-center md:justify-start">
+                  {(hasVIP || isOwner) && <Crown className="size-7 sm:size-10 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.6)]" />}
+                  {hasProfessor && <GraduationCap className="size-7 sm:size-10 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.6)]" />}
+                  {hasDiamond && <Gem className="size-7 sm:size-10 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]" />}
+                  {hasGhost && <Ghost className="size-7 sm:size-10 text-slate-400 drop-shadow-[0_0_15px_rgba(148,163,184,0.4)]" />}
                </div>
              </div>
 
-             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                <Badge className={cn("border-0 px-6 py-2 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg", isOwner ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black" : hasFire ? "bg-red-500" : "cyber-gradient")}>
+             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-4">
+                <Badge className={cn("border-0 px-4 sm:px-6 py-1.5 sm:py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl shadow-lg", isOwner ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black" : hasFire ? "bg-red-500" : "cyber-gradient")}>
                   {isOwner ? "OWNER" : hasFire ? "LEGEND ON FIRE" : (profile.gradeLevel || "Школяр")}
                 </Badge>
-                <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-6 py-2 rounded-xl backdrop-blur-md">
-                  <span className="text-white font-black uppercase text-[10px] tracking-widest">LV {profile.level}</span>
-                  <div className="size-1.5 bg-white/20 rounded-full" />
-                  <span className="text-primary font-black uppercase text-[10px] tracking-widest">{profile.xp || 0} XP</span>
+                <div className="flex items-center gap-2 sm:gap-4 bg-white/5 border border-white/10 px-3 sm:px-6 py-1.5 sm:py-2 rounded-xl backdrop-blur-md">
+                  <span className="text-white font-black uppercase text-[9px] sm:text-[10px] tracking-widest">LV {profile.level}</span>
+                  <div className="size-1 sm:size-1.5 bg-white/20 rounded-full" />
+                  <span className="text-primary font-black uppercase text-[9px] sm:text-[10px] tracking-widest">{profile.xp || 0} XP</span>
                 </div>
-                {hasBoost && <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 gap-2 h-10 px-4 rounded-xl font-black uppercase text-[9px]"><Zap className="size-3.5" /> 2X XP ACTIVE</Badge>}
+                {hasBoost && <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 gap-1.5 sm:gap-2 h-8 sm:h-10 px-3 sm:px-4 rounded-xl font-black uppercase text-[8px] sm:text-[9px]"><Zap className="size-3 sm:size-3.5" /> 2X XP</Badge>}
              </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-6">
-        <div className="space-y-6">
-           <Card className="glass-panel border-0 rounded-[2.5rem] p-4 shadow-2xl">
-              <CardHeader><CardTitle className="text-xl flex items-center gap-3 text-white"><Trophy className="size-6 text-primary" /> Статистика</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                 <StatItem icon={<Trophy className="text-yellow-500" />} label="Рейтинг XP" value={(profile.xp || 0).toLocaleString()} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 pt-4 sm:pt-6">
+        <div className="space-y-4 sm:space-y-6">
+           <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[2.5rem] p-3 sm:p-4 shadow-2xl">
+              <CardHeader className="p-3 sm:p-6"><CardTitle className="text-lg sm:text-xl flex items-center gap-3 text-white"><Trophy className="size-5 sm:size-6 text-primary" /> Статистика</CardTitle></CardHeader>
+              <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-6 pt-0">
+                 <StatItem icon={<Trophy className="text-yellow-500" />} label="XP" value={(profile.xp || 0).toLocaleString()} />
                  <StatItem icon={<Coins className="text-yellow-500" />} label="Монети" value={isOwner ? "∞" : (profile.coins || 0)} />
                  <StatItem icon={<Star className="text-primary" />} label="Статус" value={isOwner ? "Founder" : profile.academicStatus || "Новачок"} />
-                 <StatItem icon={<Users className="text-blue-500" />} label="Друзі" value={friends?.length || 0} />
+                 <StatItem icon={<Award className="text-emerald-400" />} label="Ачівки" value={`${userAchievements.length}/${allAchievements.length}`} />
               </CardContent>
            </Card>
 
-           <Card className="glass-panel border-0 rounded-[2.5rem] p-4 shadow-2xl">
-              <CardHeader><CardTitle className="text-xl text-white">Досягнення</CardTitle></CardHeader>
-              <CardContent className="flex flex-wrap gap-3">
-                 {(profile?.achievements?.includes('smart_lazy') || isOwner) && <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 rounded-xl px-4 py-1.5 font-bold">Кмітливий, але лінивий</Badge>}
-                 {(profile?.achievements?.includes('rich_student') || isOwner) && <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 rounded-xl px-4 py-1.5 font-bold">Багатий учень</Badge>}
-                 {(profile?.achievements?.includes('night_owl') || isOwner) && <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20 rounded-xl px-4 py-1.5 font-bold">Нічна сова</Badge>}
-                 {(hasVIP || isOwner) && <Badge variant="outline" className="bg-indigo-500/10 text-indigo-500 border-indigo-500/20 rounded-xl px-4 py-1.5 font-bold">VIP Член</Badge>}
-                 {(hasFire || isOwner) && <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20 rounded-xl px-4 py-1.5 font-bold">Легенда</Badge>}
+           <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[2.5rem] p-3 sm:p-4 shadow-2xl">
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl text-white flex items-center gap-3">
+                  <Award className="size-5 sm:size-6 text-primary" /> Досягнення
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <div className="flex flex-wrap gap-2">
+                  {allAchievements.map((ach) => {
+                    const isUnlocked = userAchievements.includes(ach.id) ||
+                      (ach.id === 'vip_status' && (hasVIP || isOwner)) ||
+                      (ach.id === 'fire_title' && (hasFire || isOwner)) ||
+                      (ach.id === 'matrix_hacker' && (hasMatrix || isOwner)) ||
+                      (ach.id === 'ghost_walker' && (hasGhost || isOwner)) ||
+                      isOwner;
+                    return (
+                      <div
+                        key={ach.id}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl border transition-all",
+                          isUnlocked ? colorMap[ach.color] : lockedColor
+                        )}
+                      >
+                        <span className="shrink-0">{ach.icon}</span>
+                        <span className={cn(
+                          "text-[10px] sm:text-xs font-bold whitespace-nowrap",
+                          !isUnlocked && "opacity-40"
+                        )}>
+                          {ach.label}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
               </CardContent>
            </Card>
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
            {isEditing ? (
-             <Card className="glass-panel border-0 animate-in slide-in-from-top-4 rounded-[2.5rem] shadow-2xl">
-                <CardHeader className="p-10 pb-4">
-                  <CardTitle className="text-2xl font-bold text-white">Редагування профілю</CardTitle>
+             <Card className="glass-panel border-0 animate-in slide-in-from-top-4 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl">
+                <CardHeader className="p-6 sm:p-10 pb-4">
+                  <CardTitle className="text-xl sm:text-2xl font-bold text-white">Редагування профілю</CardTitle>
                   <CardDescription>Змініть те, як інші бачать ваш профіль у School Hub.</CardDescription>
                 </CardHeader>
-                <CardContent className="p-10 pt-4 space-y-6">
-                   <div className="space-y-3">
+                <CardContent className="p-6 sm:p-10 pt-4 space-y-4 sm:space-y-6">
+                   <div className="space-y-2 sm:space-y-3">
                       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] ml-1">Ім'я відображення</label>
-                      <Input value={editedName} onChange={(e) => setEditedName(e.target.value)} className="bg-white/5 border-white/10 h-16 rounded-2xl text-lg focus:ring-primary/40 px-6 text-white" />
+                      <Input value={editedName} onChange={(e) => setEditedName(e.target.value)} className="bg-white/5 border-white/10 h-12 sm:h-16 rounded-xl sm:rounded-2xl text-base sm:text-lg focus:ring-primary/40 px-4 sm:px-6 text-white" />
                    </div>
-                   <div className="space-y-3">
+                   <div className="space-y-2 sm:space-y-3">
                       <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] ml-1">Про мене</label>
-                      <Textarea value={editedBio} onChange={(e) => setEditedBio(e.target.value)} className="bg-white/5 border-white/10 min-h-[180px] rounded-[2rem] text-white p-8 text-lg focus:ring-primary/40 leading-relaxed" placeholder="Розкажіть про свої захоплення та досягнення..." />
+                      <Textarea value={editedBio} onChange={(e) => setEditedBio(e.target.value)} className="bg-white/5 border-white/10 min-h-[140px] sm:min-h-[180px] rounded-[1.5rem] sm:rounded-[2rem] text-white p-5 sm:p-8 text-base sm:text-lg focus:ring-primary/40 leading-relaxed" placeholder="Розкажіть про свої захоплення та досягнення..." />
                    </div>
-                   <div className="flex gap-4 justify-end pt-6">
-                      <Button variant="ghost" className="rounded-2xl h-14 px-10 font-bold" onClick={() => setIsEditing(false)}>Скасувати</Button>
-                      <Button className="cyber-gradient border-0 rounded-2xl h-14 px-16 font-black uppercase text-xs tracking-widest shadow-xl" onClick={handleUpdateProfile}>Зберегти зміни</Button>
+                   <div className="flex gap-3 sm:gap-4 justify-end pt-4 sm:pt-6">
+                      <Button variant="ghost" className="rounded-xl sm:rounded-2xl h-11 sm:h-14 px-6 sm:px-10 font-bold text-sm" onClick={() => setIsEditing(false)}>Скасувати</Button>
+                      <Button className="cyber-gradient border-0 rounded-xl sm:rounded-2xl h-11 sm:h-14 px-8 sm:px-16 font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl" onClick={handleUpdateProfile}>Зберегти</Button>
                    </div>
                 </CardContent>
              </Card>
            ) : (
-             <Tabs defaultValue="about" className="w-full">
-                <TabsList className="glass-panel p-1.5 border-0 rounded-[1.75rem] w-full justify-start md:w-fit h-16 shadow-xl">
-                   <TabsTrigger value="about" className="rounded-xl px-12 h-full font-black uppercase text-[10px] tracking-widest data-[state=active]:cyber-gradient">Про мене</TabsTrigger>
-                   <TabsTrigger value="friends" className="rounded-xl px-12 h-full font-black uppercase text-[10px] tracking-widest data-[state=active]:cyber-gradient">Друзі ({friends?.length || 0})</TabsTrigger>
-                </TabsList>
-                <TabsContent value="about" className="pt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                   <Card className="glass-panel border-0 rounded-[3rem] shadow-2xl">
-                      <CardContent className="p-12 space-y-8">
-                         <div className="space-y-4">
-                            <h3 className="text-xs font-black text-primary uppercase tracking-[0.4em]">Біографія</h3>
-                            <p className="text-white/90 leading-relaxed text-xl font-medium italic">
-                               {profile.bio || "Цей користувач ще не додав опис про себе. Будь першим, хто напише йому!"}
-                            </p>
-                         </div>
-                      </CardContent>
-                   </Card>
-                </TabsContent>
-                <TabsContent value="friends" className="pt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {friends && friends.length > 0 ? friends.map((friend: any) => (
-                        <div key={friend.id} className="glass-panel p-6 rounded-[2rem] flex items-center gap-5 group hover:border-primary/50 transition-all shadow-xl">
-                           <Avatar className="size-16 border-2 border-white/10 shrink-0 group-hover:border-primary/30 transition-all">
-                              <AvatarImage src={friend.photoURL} className="object-cover" />
-                              <AvatarFallback className="bg-primary/20 text-primary font-bold">{friend.displayName?.[0]}</AvatarFallback>
-                           </Avatar>
-                           <div className="flex-1 min-w-0">
-                              <p className="font-bold text-white text-lg group-hover:text-primary transition-colors truncate">{friend.displayName}</p>
-                              <p className="text-xs text-muted-foreground font-black uppercase tracking-widest opacity-60">Учень School Hub</p>
-                           </div>
-                           <Button variant="ghost" size="icon" className="size-12 rounded-2xl hover:bg-primary/20 shrink-0 text-primary" onClick={() => router.push(`/messages?with=${friend.id}`)}>
-                              <MessageSquare className="size-6" />
-                           </Button>
-                        </div>
-                      )) : (
-                        <Card className="glass-panel border-0 col-span-2 py-32 text-center rounded-[3.5rem] shadow-2xl">
-                           <Users className="size-20 text-muted-foreground mx-auto mb-6 opacity-10" />
-                           <p className="text-muted-foreground font-bold text-lg">У вас поки немає друзів. Знайдіть їх у Хабі Знань!</p>
-                        </Card>
-                      )}
+             <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[3rem] shadow-2xl">
+                <CardContent className="p-6 sm:p-12 space-y-6 sm:space-y-8">
+                   <div className="space-y-3 sm:space-y-4">
+                      <h3 className="text-xs font-black text-primary uppercase tracking-[0.4em]">Біографія</h3>
+                      <p className="text-white/90 leading-relaxed text-base sm:text-xl font-medium italic">
+                         {profile.bio || "Цей користувач ще не додав опис про себе."}
+                      </p>
                    </div>
-                </TabsContent>
-             </Tabs>
+
+                   {purchasedItems.length > 0 && (
+                     <div className="space-y-3 sm:space-y-4">
+                       <h3 className="text-xs font-black text-primary uppercase tracking-[0.4em]">Колекція</h3>
+                       <div className="flex flex-wrap gap-2">
+                         {purchasedItems.map((itemId: string) => (
+                           <Badge key={itemId} variant="outline" className="bg-white/5 border-white/10 text-white/70 text-[9px] sm:text-[10px] px-3 py-1 rounded-lg">
+                             {itemId.replace(/_/g, ' ')}
+                           </Badge>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                </CardContent>
+             </Card>
            )}
         </div>
       </div>
@@ -261,14 +335,12 @@ export default function ProfilePage() {
 
 function StatItem({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | number }) {
   return (
-    <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all group shadow-inner">
-       <div className="flex items-center gap-4">
-          <div className="size-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-             {icon}
-          </div>
-          <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{label}</span>
+    <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all group shadow-inner">
+       <div className="size-9 sm:size-11 rounded-xl sm:rounded-2xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shrink-0">
+          {icon}
        </div>
-       <span className="font-black text-2xl text-white italic drop-shadow-md">{value}</span>
+       <span className="text-[9px] sm:text-[10px] text-muted-foreground font-black uppercase tracking-widest shrink-0">{label}</span>
+       <span className="font-black text-sm sm:text-lg text-white italic drop-shadow-md ml-auto text-right truncate">{value}</span>
     </div>
   )
 }
