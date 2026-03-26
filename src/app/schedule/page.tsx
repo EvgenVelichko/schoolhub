@@ -35,6 +35,7 @@ import { collection, query, orderBy } from "firebase/firestore"
 import { format, startOfWeek, addDays, isWeekend, addWeeks } from "date-fns"
 import { uk } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { isFriday, buildFridayLessons } from "@/lib/friday-schedule"
 
 interface Lesson {
   subject: string
@@ -136,7 +137,11 @@ export default function SchedulePage() {
     const targetDate = addDays(currentWeekStart, dayOffset)
     const targetDateStr = format(targetDate, 'yyyy-MM-dd')
 
-    return (allLessons?.filter((lesson: any) => lesson.date === targetDateStr) || [])
+    if (isFriday(targetDateStr)) {
+      return buildFridayLessons(targetDateStr, allLessons || []) as Lesson[]
+    }
+
+    const raw = (allLessons?.filter((lesson: any) => lesson.date === targetDateStr) || [])
       .sort((a: any, b: any) => {
         const orderA = a.order || 0
         const orderB = b.order || 0
@@ -148,6 +153,14 @@ export default function SchedulePage() {
         if (orderA) return -1
         return 1
       }) as Lesson[]
+    // Deduplicate by order+subject
+    const seen = new Set<string>()
+    return raw.filter(l => {
+      const key = `${l.order}_${l.subject}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   }
 
   const isCurrentWeek = weekOffset === 0
@@ -166,7 +179,7 @@ export default function SchedulePage() {
   }, [allLessons, currentWeekStart])
 
   if (userLoading || lessonsLoading) return (
-    <div className="h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0512]">
+    <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background">
       <Loader2 className="size-12 animate-spin text-primary" />
       <p className="text-xs font-bold tracking-widest text-primary/50 uppercase">Завантаження розкладу...</p>
     </div>

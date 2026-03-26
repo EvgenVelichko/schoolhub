@@ -41,13 +41,13 @@ import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Дашборд", href: "/", color: "text-purple-400" },
+  { icon: LayoutDashboard, label: "Дашборд", href: "/", color: "text-violet-400" },
   { icon: Calendar, label: "Розклад", href: "/schedule", color: "text-blue-400" },
   { icon: TrendingUp, label: "Оцінки", href: "/grades", color: "text-green-400" },
   { icon: Library, label: "Хаб Знань", href: "/hub", color: "text-emerald-400" },
   { icon: ShoppingBag, label: "Магазин", href: "/shop", color: "text-yellow-500" },
   { icon: Gamepad2, label: "Зона Ігор", href: "/games", color: "text-pink-400" },
-  { icon: Trophy, label: "Рейтинг", href: "/leaderboard", color: "text-orange-400" },
+  { icon: Trophy, label: "Рейтинг", href: "/leaderboard", color: "text-violet-400" },
 ]
 
 export function AppSidebar() {
@@ -92,7 +92,7 @@ export function AppSidebar() {
   if (pathname === '/auth' || (pathname === '/' && !user)) return null
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-white/5 bg-[#0d091a]">
+    <Sidebar collapsible="icon" className="border-r border-white/5 bg-sidebar">
       <SidebarHeader className="p-4">
         <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-3">
           <div className="size-9 rounded-xl cyber-gradient flex items-center justify-center shadow-lg shrink-0">

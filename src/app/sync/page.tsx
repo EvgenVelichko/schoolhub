@@ -101,10 +101,14 @@ export default function SyncPage() {
       const { data } = result;
       const ops: Array<{ type: 'set' | 'update'; ref: any; data: any; options?: any }> = [];
 
-      // Delete all existing grades to prevent duplicates from old sourceKey formats.
-      const existingGrades = await getDocs(collection(db, "users", user.uid, "grades"));
+      // Delete all existing grades and lessons to prevent duplicates.
+      const [existingGrades, existingLessons] = await Promise.all([
+        getDocs(collection(db, "users", user.uid, "grades")),
+        getDocs(collection(db, "users", user.uid, "lessons")),
+      ]);
       const deleteRefs: any[] = [];
       existingGrades.forEach(d => deleteRefs.push(d.ref));
+      existingLessons.forEach(d => deleteRefs.push(d.ref));
       for (let i = 0; i < deleteRefs.length; i += MAX_BATCH_OPS) {
         const chunk = deleteRefs.slice(i, i + MAX_BATCH_OPS);
         const delBatch = writeBatch(db);
@@ -133,8 +137,8 @@ export default function SyncPage() {
       setProgress(60)
       setStatus("Оновлення розкладу...")
       data.lessons.forEach(l => {
-        const rawId = `${l.date}_${l.order}`;
-        const safeId = "lsn_" + rawId.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').toLowerCase();
+        const rawId = `${l.date}_${l.order}_${l.subject}`;
+        const safeId = "lsn_" + rawId.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, '_').replace(/_+/g, '_').toLowerCase();
         ops.push({ type: 'set', ref: doc(db, "users", user.uid, "lessons", safeId), data: { ...l, syncedAt: serverTimestamp() }, options: { merge: true } });
       });
 
@@ -168,10 +172,18 @@ export default function SyncPage() {
       setTimeout(() => router.push('/'), 1000);
       
     } catch (e: any) {
-      toast({ title: "Помилка", description: e.message, variant: "destructive" })
+      const msg = e.message || "Невідома помилка";
+      const isHtml = msg.includes('HTML') || msg.includes('Cloudflare');
+      toast({
+        title: isHtml ? "NZ.ua тимчасово недоступний" : "Помилка",
+        description: isHtml
+          ? "Сервер NZ.ua блокує запит. Перевірте логін/пароль або спробуйте через кілька хвилин."
+          : msg,
+        variant: "destructive"
+      })
       setIsSyncing(false)
       setProgress(0)
-      setStatus("Помилка")
+      setStatus("")
     }
   }
 

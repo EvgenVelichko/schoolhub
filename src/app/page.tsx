@@ -43,6 +43,7 @@ import { useRouter } from "next/navigation"
 import { format, parseISO, isAfter, set, addDays } from "date-fns"
 import { uk } from "date-fns/locale"
 import { syncWithNzPortal } from "@/app/actions/nz-sync"
+import { isFriday, buildFridayLessons } from "@/lib/friday-schedule"
 import { toast } from "@/hooks/use-toast"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -143,17 +144,35 @@ export default function Home() {
         const firstDate = futureLessons[0].date;
         target = parseISO(firstDate);
         label = firstDate === todayStr ? "На сьогодні" : firstDate === tomorrowStr ? "На завтра" : format(target, 'EEEE', { locale: uk });
+      } else if (isFriday(checkDate)) {
+        target = parseISO(checkDate);
+        label = checkDate === todayStr ? "На сьогодні" : checkDate === tomorrowStr ? "На завтра" : format(target, 'EEEE', { locale: uk });
       }
+    } else if (isFriday(checkDate)) {
+      target = parseISO(checkDate);
+      label = checkDate === todayStr ? "На сьогодні" : checkDate === tomorrowStr ? "На завтра" : format(target, 'EEEE', { locale: uk });
     }
     return { targetDate: target, scheduleLabel: label };
   }, [allFetchedLessons]);
 
   const displayedLessons = React.useMemo(() => {
-    if (!allFetchedLessons) return [];
     const dateKey = format(targetDate, 'yyyy-MM-dd');
-    return allFetchedLessons
+
+    if (isFriday(dateKey)) {
+      return buildFridayLessons(dateKey, allFetchedLessons || []);
+    }
+
+    const synced = (allFetchedLessons || [])
       .filter((l: any) => l.date === dateKey)
       .sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+    // Deduplicate by order+subject
+    const seen = new Set<string>();
+    return synced.filter((l: any) => {
+      const key = `${l.order}_${l.subject}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [allFetchedLessons, targetDate]);
 
   const performSync = async (manual = false) => {
@@ -170,10 +189,14 @@ export default function Home() {
         const ops: Array<{ type: 'set' | 'update'; ref: any; data: any; options?: any }> = [];
         const hasXpBoost = profile?.purchasedItems?.includes('xp_boost');
 
-        // Delete all existing grades to prevent duplicates from old sourceKey formats.
-        const existingGrades = await getDocs(collection(db, "users", user.uid, "grades"));
+        // Delete all existing grades and lessons to prevent duplicates.
+        const [existingGrades, existingLessons] = await Promise.all([
+          getDocs(collection(db, "users", user.uid, "grades")),
+          getDocs(collection(db, "users", user.uid, "lessons")),
+        ]);
         const deleteRefs: any[] = [];
         existingGrades.forEach(d => deleteRefs.push(d.ref));
+        existingLessons.forEach(d => deleteRefs.push(d.ref));
         for (let i = 0; i < deleteRefs.length; i += MAX_BATCH_OPS) {
           const chunk = deleteRefs.slice(i, i + MAX_BATCH_OPS);
           const delBatch = writeBatch(db);
@@ -253,12 +276,12 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [profile?.nzLogin, profile?.nzPassword, user, profileLoading]);
 
-  if (userLoading || profileLoading) return <div className="fixed inset-0 bg-[#0a0512] flex items-center justify-center z-[100]"><Loader2 className="size-10 text-primary animate-spin" /></div>
+  if (userLoading || profileLoading) return <div className="fixed inset-0 bg-background flex items-center justify-center z-[100]"><Loader2 className="size-10 text-primary animate-spin" /></div>
 
   const isOwner = profile?.role === 'owner';
 
   return (
-    <div className="min-h-screen bg-[#0a0512] scrollbar-none">
+    <div className="min-h-screen bg-background scrollbar-none">
       <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-8 py-4 sm:py-8 space-y-6 sm:space-y-10 animate-reveal">
         <header className="flex flex-col sm:flex-row justify-between items-center glass-panel p-4 sm:p-6 md:p-8 rounded-[2rem] sm:rounded-[2.5rem] border-0 relative overflow-hidden gap-4 sm:gap-6">
           <div className="flex items-center gap-3 sm:gap-4 md:gap-6 z-10 w-full sm:w-auto">

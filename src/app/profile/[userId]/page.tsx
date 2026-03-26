@@ -134,7 +134,7 @@ export default function UserProfilePage() {
     }
   }
 
-  if (profileLoading) return <div className="h-screen flex items-center justify-center bg-[#0a0512]"><Loader2 className="animate-spin text-primary size-12" /></div>
+  if (profileLoading) return <div className="h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary size-12" /></div>
 
   if (!profile) return <div className="p-6 text-center text-white">Користувача не знайдено.</div>
 

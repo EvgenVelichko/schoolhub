@@ -20,7 +20,9 @@
       "Bash(curl:*)",
       "Bash(xargs wc:*)",
       "Bash(do echo:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(gh api:*)"
     ]
   }
 }

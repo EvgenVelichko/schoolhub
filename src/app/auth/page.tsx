@@ -107,7 +107,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-3 sm:p-6 bg-[#0a0512] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-3 sm:p-6 bg-background relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-primary/20 blur-[150px] rounded-full animate-pulse-slow" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-secondary/20 blur-[150px] rounded-full animate-pulse-slow" />

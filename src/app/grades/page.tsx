@@ -95,7 +95,7 @@ export default function GradesPage() {
   }, [subjectStats])
 
   if (loading) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-[#06030c] gap-4">
+    <div className="h-screen flex flex-col items-center justify-center bg-background gap-4">
       <Loader2 className="animate-spin text-primary size-12" />
       <p className="text-xs font-black uppercase tracking-[0.3em] text-primary/50">Завантажуємо журнал...</p>
     </div>

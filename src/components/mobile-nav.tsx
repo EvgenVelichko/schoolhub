@@ -21,7 +21,7 @@ export function MobileNav() {
   if (pathname === '/auth' || pathname?.startsWith('/chat')) return null
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0512]/95 backdrop-blur-2xl border-t border-white/5 px-1 sm:px-2 flex items-start justify-around z-[100] safe-bottom pt-2 pb-3">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-2xl border-t border-white/5 px-1 sm:px-2 flex items-start justify-around z-[100] safe-bottom pt-2 pb-3">
       {navItems.map((item) => {
         const isActive = pathname === item.href
         return (

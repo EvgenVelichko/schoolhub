@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useUser, useFirestore, useDoc, useCollection } from "@/firebase"
 import { doc, collection, query, orderBy, addDoc, serverTimestamp, limit, setDoc, deleteDoc } from "firebase/firestore"
+import { deleteReportMessages } from "@/lib/report-utils"
 import { useRouter } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
@@ -70,9 +71,10 @@ export default function SupportChat() {
   }
 
   const handleClearAndClose = async () => {
-    if (!reportRef) return;
+    if (!reportRef || !reportId) return;
     setIsDeleting(true);
     try {
+      await deleteReportMessages(db, reportId);
       await deleteDoc(reportRef);
       toast({ title: "Репорт видалено" });
       router.replace('/');
@@ -82,12 +84,12 @@ export default function SupportChat() {
     }
   }
 
-  if (reportLoading || isDeleting) return <div className="h-screen flex items-center justify-center bg-[#06030c]"><Loader2 className="animate-spin text-primary size-10" /></div>
+  if (reportLoading || isDeleting) return <div className="h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary size-10" /></div>
 
   const isClosed = report?.status === 'closed';
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-[#0a0512] animate-reveal overflow-hidden relative scrollbar-none">
+    <div className="h-[100dvh] flex flex-col bg-background animate-reveal overflow-hidden relative scrollbar-none">
       <header className="mobile-header-blur p-4 flex items-center justify-between shrink-0 z-50">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="size-10 rounded-xl hover:bg-white/10" onClick={() => router.back()}>
@@ -134,7 +136,7 @@ export default function SupportChat() {
 
         {messagesLoading ? (
           <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" /></div>
-        ) : (
+        ) : isClosed ? null : (
           messages?.map((msg: any, i: number) => {
             const isOwn = !msg.isAdmin; 
             return (
@@ -176,7 +178,7 @@ export default function SupportChat() {
       </CardContent>
 
       <footer className={cn(
-        "fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-[#0a0512]/95 backdrop-blur-3xl border-t border-white/5 flex gap-3 pb-8 md:pb-6 z-50 transition-all duration-500",
+        "fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-background/95 backdrop-blur-3xl border-t border-white/5 flex gap-3 pb-8 md:pb-6 z-50 transition-all duration-500",
         isClosed ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
       )}>
         <Input 

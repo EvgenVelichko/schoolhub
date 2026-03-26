@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useCollection, useFirestore, useUser, useDoc } from "@/firebase"
 import { collection, query, orderBy, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, increment } from "firebase/firestore"
+import { deleteReportMessages } from "@/lib/report-utils"
 import { toast } from "@/hooks/use-toast"
 import { 
   Table, 
@@ -123,6 +124,7 @@ export default function AdminHub() {
 
   const handleCloseReport = async (id: string) => {
     try {
+      await deleteReportMessages(db, id);
       await updateDoc(doc(db, "reports", id), { status: "closed" });
       toast({ title: "Звернення закрито" })
     } catch (e) {
@@ -133,6 +135,7 @@ export default function AdminHub() {
   const handleDeleteReport = async (id: string) => {
     if (!confirm("Видалити репорт назавжди?")) return;
     try {
+      await deleteReportMessages(db, id);
       await deleteDoc(doc(db, "reports", id));
       if (activeReportId === id) setActiveReportId(null);
       toast({ title: "Репорт видалено" })
@@ -141,7 +144,7 @@ export default function AdminHub() {
     }
   }
 
-  if (profileLoading) return <div className="h-screen flex items-center justify-center bg-[#0a0512]"><Loader2 className="animate-spin text-primary size-10" /></div>
+  if (profileLoading) return <div className="h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary size-10" /></div>
 
   const role = profile?.role || 'user';
   if (role !== 'admin' && role !== 'owner' && role !== 'tester') return <div className="h-screen flex items-center justify-center text-muted-foreground">Доступ обмежено.</div>

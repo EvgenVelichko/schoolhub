@@ -42,7 +42,7 @@ function MobileHeader() {
       <div className="flex items-center gap-3">
         <SidebarTrigger className="text-white shrink-0 h-10 w-10 hover:bg-white/5 rounded-xl transition-colors" />
         <div className="flex items-center gap-2">
-          <div className="size-8 rounded-lg cyber-gradient flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+          <div className="size-8 rounded-lg premium-gradient flex items-center justify-center shadow-lg shadow-primary/15 shrink-0">
             <Zap className="text-white size-4 shrink-0" />
           </div>
           <span className="font-headline font-bold text-base tracking-tight text-white uppercase">
@@ -113,7 +113,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex h-[100dvh] w-full bg-[#0c0805] scrollbar-none overflow-hidden">
+      <div className="flex h-[100dvh] w-full bg-background scrollbar-none overflow-hidden">
         <AppSidebar />
         <main className="flex-1 flex flex-col min-w-0 relative">
           <MobileHeader />
@@ -136,12 +136,13 @@ export default function RootLayout({
   return (
     <html lang="uk" className="dark scrollbar-none scroll-smooth">
       <head>
+        <link rel="icon" href="/favicon.jpg" type="image/jpeg" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
       </head>
-      <body className="font-body antialiased bg-background text-foreground min-h-[100dvh] overflow-hidden scrollbar-none">
+      <body className="font-body antialiased bg-background text-foreground min-h-[100dvh] overflow-hidden scrollbar-none grain-overlay">
         <FirebaseClientProvider>
           <MainLayout>
             {children}

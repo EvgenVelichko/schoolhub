@@ -18,8 +18,10 @@ const BASE_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
   'Accept-Charset': 'utf-8',
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Accept-Language': 'uk-UA,uk;q=0.9,en;q=0.8',
+  'User-Agent': 'NZApp/3.0.0 (Android 14; sdk 34)',
   'Connection': 'Keep-Alive',
+  'X-Requested-With': 'ua.nz.journal',
 };
 
 // ─── Subject normalization ──────────────────────────────────────────
@@ -79,40 +81,63 @@ function norm(raw: string): string {
 function parseJson(raw: string, tag: string): any {
   const t = raw.trim();
   if (!t) throw new Error(`Порожня відповідь (${tag})`);
-  if (t[0] === '<') throw new Error(`NZ.ua повернув HTML (${tag})`);
+  if (t[0] === '<') {
+    // Detect Cloudflare challenge vs NZ.ua login page
+    if (t.includes('cf-') || t.includes('cloudflare') || t.includes('challenge')) {
+      throw new Error(`Cloudflare блокує запит (${tag}). Спробуйте пізніше`);
+    }
+    throw new Error(`NZ.ua повернув HTML замість даних (${tag}). Можливо, невірний логін/пароль або сервер тимчасово недоступний`);
+  }
   try { return JSON.parse(t); }
   catch { throw new Error(`Невалідний JSON (${tag})`); }
 }
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 async function post(url: string, body: Record<string, unknown>, headers: Record<string, string>, tag: string): Promise<any> {
-  // 1) try fetch
-  try {
-    const res = await fetch(url, {
-      method: 'POST', headers,
-      body: JSON.stringify(body),
-      cache: 'no-store',
-    });
-    const raw = await res.text();
-    try { return parseJson(raw, tag); }
-    catch { /* HTML / bad JSON → fall through to curl */ }
-  } catch { /* network error → curl */ }
+  let lastError: Error | null = null;
 
-  // 2) curl fallback (Cloudflare sometimes blocks node fetch)
-  const bin = process.platform === 'win32' ? 'curl.exe' : 'curl';
-  const args = ['-sS', '--max-time', '30', '-X', 'POST', url];
-  for (const [k, v] of Object.entries(headers)) args.push('-H', `${k}: ${v}`);
-  args.push('--data-raw', JSON.stringify(body));
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await sleep(1500);
 
-  const r = await new Promise<{ code: number | null; out: string; err: string }>(res => {
-    const p = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    let out = '', err = '';
-    p.stdout.on('data', c => (out += c));
-    p.stderr.on('data', c => (err += c));
-    p.on('close', code => res({ code, out, err }));
-    p.on('error', () => res({ code: -1, out, err: `cannot run ${bin}` }));
-  });
-  if (r.code !== 0) throw new Error(`curl failed (${tag}): ${r.err || r.code}`);
-  return parseJson(r.out, tag);
+    // 1) try fetch
+    try {
+      const res = await fetch(url, {
+        method: 'POST', headers,
+        body: JSON.stringify(body),
+        cache: 'no-store',
+      });
+      const raw = await res.text();
+      try { return parseJson(raw, tag); }
+      catch (e: any) { lastError = e; }
+    } catch (e: any) { lastError = e; }
+
+    // 2) curl fallback (Cloudflare sometimes blocks node fetch)
+    try {
+      const bin = process.platform === 'win32' ? 'curl.exe' : 'curl';
+      const args = ['-sS', '--max-time', '30', '-X', 'POST', url,
+        '--http1.1', '--compressed'];
+      for (const [k, v] of Object.entries(headers)) args.push('-H', `${k}: ${v}`);
+      args.push('--data-raw', JSON.stringify(body));
+
+      const r = await new Promise<{ code: number | null; out: string; err: string }>(res => {
+        const p = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+        let out = '', err = '';
+        p.stdout.on('data', c => (out += c));
+        p.stderr.on('data', c => (err += c));
+        p.on('close', code => res({ code, out, err }));
+        p.on('error', () => res({ code: -1, out, err: `cannot run ${bin}` }));
+      });
+      if (r.code === 0) {
+        try { return parseJson(r.out, tag); }
+        catch (e: any) { lastError = e; }
+      } else {
+        lastError = new Error(`curl failed (${tag}): ${r.err || r.code}`);
+      }
+    } catch (e: any) { lastError = e; }
+  }
+
+  throw lastError || new Error(`Не вдалося з'єднатися з NZ.ua (${tag})`);
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
