@@ -128,7 +128,7 @@ export default function MessagesPage() {
                           </Avatar>
                         )}
                         <div className={cn(
-                          "p-3.5 sm:p-4 rounded-2xl text-sm sm:text-[15px] shadow-xl transition-all leading-relaxed",
+                          "p-3.5 sm:p-4 rounded-2xl text-sm sm:text-[15px] transition-all leading-relaxed",
                           isOwn ? 'chat-bubble-own' : 'chat-bubble-other'
                         )}>
                           {msg.text}
@@ -155,7 +155,7 @@ export default function MessagesPage() {
                   onChange={(e) => setMessageText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 />
-                <Button className="cyber-gradient size-12 sm:size-14 rounded-xl sm:rounded-2xl shrink-0 shadow-xl shadow-primary/20 active:scale-95 transition-all" onClick={handleSendMessage}>
+                <Button className="cyber-gradient size-12 sm:size-14 rounded-xl sm:rounded-2xl shrink-0 active:scale-95 transition-all" onClick={handleSendMessage}>
                   <Send className="size-5 sm:size-6 text-white" />
                 </Button>
               </div>

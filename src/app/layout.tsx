@@ -42,7 +42,7 @@ function MobileHeader() {
       <div className="flex items-center gap-3">
         <SidebarTrigger className="text-white shrink-0 h-10 w-10 hover:bg-white/5 rounded-xl transition-colors" />
         <div className="flex items-center gap-2">
-          <div className="size-8 rounded-lg premium-gradient flex items-center justify-center shadow-lg shadow-primary/15 shrink-0">
+          <div className="size-8 rounded-lg premium-gradient flex items-center justify-center shrink-0">
             <Zap className="text-white size-4 shrink-0" />
           </div>
           <span className="font-headline font-bold text-base tracking-tight text-white uppercase">
@@ -53,12 +53,12 @@ function MobileHeader() {
       
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Avatar className="size-10 border border-primary/20 shadow-lg shrink-0 cursor-pointer">
+          <Avatar className="size-10 border border-primary/20 shrink-0 cursor-pointer">
             <AvatarImage src={profile?.photoURL} className="object-cover" />
             <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs">{user?.displayName?.[0]}</AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52 glass-panel border-white/10 rounded-xl p-1 shadow-2xl z-[150]">
+        <DropdownMenuContent align="end" className="w-52 glass-panel border-white/10 rounded-xl p-1 z-[150]">
           <DropdownMenuItem asChild className="rounded-lg h-9 cursor-pointer focus:bg-primary/20">
             <Link href="/profile" className="flex items-center w-full font-bold text-xs">
               <User className="size-4 mr-2 text-primary" /> Профіль
@@ -82,7 +82,7 @@ function MobileHeader() {
 function BannedOverlay() {
   return (
     <div className="fixed inset-0 z-[9999] h-screen w-screen flex flex-col items-center justify-center bg-black text-white p-10 text-center animate-in fade-in duration-500">
-      <div className="size-32 rounded-[2.5rem] bg-destructive/20 flex items-center justify-center mb-8 border border-destructive/30 shadow-2xl shadow-destructive/20">
+      <div className="size-32 rounded-[2.5rem] bg-destructive/20 flex items-center justify-center mb-8 border border-destructive/30">
         <Ban className="size-16 text-destructive" />
       </div>
       <h1 className="text-4xl md:text-6xl font-headline font-bold mb-6 tracking-tighter">ВАШ АККАУНТ ЗАБЛОКОВАНО</h1>
@@ -136,7 +136,7 @@ export default function RootLayout({
   return (
     <html lang="uk" className="dark scrollbar-none scroll-smooth">
       <head>
-        <link rel="icon" href="/favicon.jpg" type="image/jpeg" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />

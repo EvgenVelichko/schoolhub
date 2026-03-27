@@ -120,7 +120,7 @@ export default function KnowledgeHub() {
           ) : (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="cyber-gradient h-11 sm:h-12 px-6 sm:px-10 rounded-xl sm:rounded-2xl font-black shadow-xl shadow-primary/20 w-full sm:w-auto text-xs uppercase tracking-widest">
+                <Button className="cyber-gradient h-11 sm:h-12 px-6 sm:px-10 rounded-xl sm:rounded-2xl font-black w-full sm:w-auto text-xs uppercase tracking-widest">
                   <Plus className="mr-2 size-4" /> Нова тема
                 </Button>
               </DialogTrigger>
@@ -179,7 +179,7 @@ export default function KnowledgeHub() {
               className={cn(
                 "cursor-pointer h-9 sm:h-10 px-4 sm:px-6 transition-all rounded-lg sm:rounded-xl border text-[10px] sm:text-[11px] font-black uppercase tracking-widest",
                 selectedSubject === subject
-                  ? 'cyber-gradient border-0 text-white shadow-lg shadow-primary/30'
+                  ? 'cyber-gradient border-0 text-white'
                   : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'
               )}
               onClick={() => setSelectedSubject(subject)}
@@ -199,7 +199,7 @@ export default function KnowledgeHub() {
           </div>
         ) : filteredThreads?.length > 0 ? (
           filteredThreads.map((thread: any) => (
-            <Card key={thread.id} className="glass-panel hover:border-primary/30 transition-all group overflow-hidden border-0 rounded-[1.5rem] sm:rounded-[2rem] shadow-xl">
+            <Card key={thread.id} className="glass-panel hover:border-primary/30 transition-all group overflow-hidden border-0 rounded-[1.5rem] sm:rounded-[2rem]">
               <CardHeader className="p-4 sm:p-6 md:p-8 pb-2 sm:pb-4 flex flex-row items-center justify-between gap-3">
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <Avatar className="size-10 sm:size-12 border border-primary/20 shrink-0">

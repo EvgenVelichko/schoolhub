@@ -153,7 +153,7 @@ export default function AdminHub() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-10 animate-reveal pb-20 scrollbar-none">
       <header className="flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className="size-14 rounded-2xl cyber-gradient flex items-center justify-center shadow-2xl shadow-primary/30">
+          <div className="size-14 rounded-2xl cyber-gradient flex items-center justify-center">
             <ShieldAlert className="text-white size-8" />
           </div>
           <div>
@@ -171,7 +171,7 @@ export default function AdminHub() {
         </TabsList>
 
         <TabsContent value="users">
-          <Card className="glass-panel border-0 rounded-[2rem] overflow-hidden shadow-2xl">
+          <Card className="glass-panel border-0 rounded-[2rem] overflow-hidden">
             <div className="overflow-x-auto scrollbar-none">
               <Table>
                 <TableHeader className="bg-white/5">
@@ -189,7 +189,7 @@ export default function AdminHub() {
                     return (
                       <TableRow key={u.id} className="hover:bg-white/5 transition-colors border-white/5">
                         <TableCell className="px-8 flex items-center gap-4 py-6">
-                          <Avatar className="size-12 border-2 border-white/10 shadow-lg">
+                          <Avatar className="size-12 border-2 border-white/10">
                             <AvatarImage src={u.photoURL} className="object-cover" />
                             <AvatarFallback className="bg-primary/20 text-primary font-bold">{u.displayName?.[0]}</AvatarFallback>
                           </Avatar>
@@ -209,7 +209,7 @@ export default function AdminHub() {
                                 <span className="font-bold uppercase text-[10px] tracking-wider">{u.role || 'user'}</span>
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="glass-panel border-white/10 rounded-xl p-2 w-48 shadow-2xl">
+                            <DropdownMenuContent className="glass-panel border-white/10 rounded-xl p-2 w-48">
                               {ROLES.map((r) => (
                                 <DropdownMenuItem 
                                   key={r} 
@@ -274,7 +274,7 @@ export default function AdminHub() {
         </TabsContent>
 
         <TabsContent value="support" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="glass-panel border-0 p-8 space-y-6 rounded-[2.5rem] h-fit shadow-2xl overflow-y-auto max-h-[700px] scrollbar-none">
+          <Card className="glass-panel border-0 p-8 space-y-6 rounded-[2.5rem] h-fit overflow-y-auto max-h-[700px] scrollbar-none">
             <h2 className="font-bold flex items-center gap-3 text-xl text-white"><LifeBuoy className="size-6 text-primary" /> Активні репорти</h2>
             <div className="space-y-3">
               {reports?.map((t: any) => (
@@ -283,7 +283,7 @@ export default function AdminHub() {
                     onClick={() => setActiveReportId(t.id)}
                     className={cn(
                       "w-full p-5 rounded-2xl text-left transition-all border border-transparent text-white",
-                      activeReportId === t.id ? 'cyber-gradient shadow-xl shadow-primary/30' : 'bg-white/5 hover:bg-white/10',
+                      activeReportId === t.id ? 'cyber-gradient' : 'bg-white/5 hover:bg-white/10',
                       t.status === 'closed' ? 'opacity-50 border-white/10' : ''
                     )}
                   >
@@ -317,7 +317,7 @@ export default function AdminHub() {
             </div>
           </Card>
 
-          <Card className="lg:col-span-2 glass-panel border-0 flex flex-col h-[700px] rounded-[2.5rem] overflow-hidden shadow-2xl">
+          <Card className="lg:col-span-2 glass-panel border-0 flex flex-col h-[700px] rounded-[2.5rem] overflow-hidden">
             {activeReportId ? (
               <>
                 <div className="p-6 border-b border-white/5 bg-white/5 flex items-center justify-between">
@@ -333,11 +333,11 @@ export default function AdminHub() {
                 <div className="flex-1 overflow-y-auto p-8 space-y-6 flex flex-col-reverse scrollbar-none overscroll-contain">
                   {supportMessages?.map((msg: any, i: number) => (
                     <div key={i} className={cn("flex gap-4", msg.isAdmin ? 'flex-row-reverse' : 'justify-start')}>
-                      <Avatar className="size-10 border border-white/10 mt-auto shrink-0 shadow-lg">
+                      <Avatar className="size-10 border border-white/10 mt-auto shrink-0">
                         <AvatarFallback className="text-[10px] font-bold bg-white/5 text-white">{msg.isAdmin ? 'A' : msg.senderName?.[0]}</AvatarFallback>
                       </Avatar>
                       <div className={cn(
-                        "max-w-[75%] p-4 rounded-2xl shadow-xl",
+                        "max-w-[75%] p-4 rounded-2xl",
                         msg.isAdmin 
                           ? 'cyber-gradient text-white rounded-br-none' 
                           : 'bg-white/10 text-white border border-white/5 rounded-bl-none'
@@ -361,7 +361,7 @@ export default function AdminHub() {
                   </div>
                   <div className="flex gap-4">
                     <Input placeholder="Відповідь..." value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendReply()} className="bg-white/5 border-white/10 h-14 rounded-2xl px-6 text-white" />
-                    <Button className="cyber-gradient size-14 shrink-0 rounded-2xl shadow-xl shadow-primary/20" onClick={() => handleSendReply()}>
+                    <Button className="cyber-gradient size-14 shrink-0 rounded-2xl" onClick={() => handleSendReply()}>
                       <Send className="size-5 text-white" />
                     </Button>
                   </div>

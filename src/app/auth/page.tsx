@@ -116,7 +116,7 @@ export default function AuthPage() {
       <div className="w-full max-w-lg relative z-10 animate-reveal">
         <div className="mb-8 sm:mb-12 flex flex-col items-center">
           <Link href="/" className="group mb-4 sm:mb-6">
-            <div className="size-16 sm:size-20 rounded-[1.25rem] sm:rounded-[1.75rem] cyber-gradient flex items-center justify-center shadow-2xl shadow-primary/40 group-hover:scale-110 transition-transform duration-500">
+            <div className="size-16 sm:size-20 rounded-[1.25rem] sm:rounded-[1.75rem] cyber-gradient flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
               <Zap className="text-white size-8 sm:size-10" />
             </div>
           </Link>
@@ -126,7 +126,7 @@ export default function AuthPage() {
           <p className="text-muted-foreground mt-2 sm:mt-4 text-sm sm:text-lg font-medium text-center max-w-xs">Увійдіть, щоб продовжити свою академічну подорож</p>
         </div>
 
-        <Card className="glass-panel border-white/5 border-0 shadow-2xl rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden">
+        <Card className="glass-panel border-white/5 border-0 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden">
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-white/5 p-1.5 sm:p-2 rounded-t-[2rem] sm:rounded-t-[2.5rem] rounded-b-none h-12 sm:h-16">
               <TabsTrigger value="login" className="rounded-xl sm:rounded-2xl py-2 sm:py-3 text-xs sm:text-sm font-bold data-[state=active]:cyber-gradient data-[state=active]:text-white">ВХІД</TabsTrigger>
@@ -167,7 +167,7 @@ export default function AuthPage() {
                       />
                     </div>
                   </div>
-                  <Button className="w-full cyber-gradient border-0 h-16 rounded-[1.25rem] font-black text-lg shadow-xl shadow-primary/20 mt-4 group" onClick={() => handleEmailAction('login')} disabled={isPending}>
+                  <Button className="w-full cyber-gradient border-0 h-16 rounded-[1.25rem] font-black text-lg mt-4 group" onClick={() => handleEmailAction('login')} disabled={isPending}>
                     {isPending ? "ЗАВАНТАЖЕННЯ..." : (
                       <>УВІЙТИ <ArrowRight className="ml-2 size-5 group-hover:translate-x-1 transition-transform" /></>
                     )}
@@ -218,7 +218,7 @@ export default function AuthPage() {
                       />
                     </div>
                   </div>
-                  <Button className="w-full cyber-gradient border-0 h-16 rounded-[1.25rem] font-black text-lg shadow-xl shadow-primary/20 mt-4 group" onClick={() => handleEmailAction('register')} disabled={isPending}>
+                  <Button className="w-full cyber-gradient border-0 h-16 rounded-[1.25rem] font-black text-lg mt-4 group" onClick={() => handleEmailAction('register')} disabled={isPending}>
                     {isPending ? "ЗАЧЕКАЙТЕ..." : (
                       <>СТВОРИТИ АККАУНТ <ArrowRight className="ml-2 size-5 group-hover:translate-x-1 transition-transform" /></>
                     )}

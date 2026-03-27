@@ -80,7 +80,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <Button
-          className="cyber-gradient border-0 h-11 sm:h-12 rounded-xl sm:rounded-2xl px-6 sm:px-8 shadow-xl shadow-primary/20 shrink-0 font-black text-xs uppercase tracking-widest"
+          className="cyber-gradient border-0 h-11 sm:h-12 rounded-xl sm:rounded-2xl px-6 sm:px-8 shrink-0 font-black text-xs uppercase tracking-widest"
           onClick={handleSaveSettings}
           disabled={isSaving}
         >
@@ -90,7 +90,7 @@ export default function SettingsPage() {
       </header>
 
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
-        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden">
+        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] overflow-hidden">
           <CardHeader className="p-5 sm:p-8">
             <CardTitle className="flex items-center gap-3 text-lg sm:text-xl text-white">
               <div className="size-10 sm:size-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
@@ -128,7 +128,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden">
+        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] overflow-hidden">
           <CardHeader className="p-5 sm:p-8">
             <CardTitle className="flex items-center gap-3 text-lg sm:text-xl text-white">
               <div className="size-10 sm:size-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
@@ -166,7 +166,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] shadow-2xl overflow-hidden border-destructive/10 bg-destructive/[0.02]">
+        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-destructive/10 bg-destructive/[0.02]">
           <CardHeader className="p-5 sm:p-8">
             <CardTitle className="flex items-center gap-3 text-lg sm:text-xl text-destructive">
               <div className="size-10 sm:size-12 rounded-xl sm:rounded-2xl bg-destructive/10 flex items-center justify-center border border-destructive/20 shrink-0">

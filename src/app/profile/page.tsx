@@ -20,7 +20,12 @@ import {
   ShoppingCart,
   Sunrise,
   BookOpen,
-  Award
+  Award,
+  Music,
+  Swords,
+  HeartPulse,
+  Sparkles,
+  Cloudy,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -61,6 +66,62 @@ function MatrixRain() {
         >
           {col.chars}
         </div>
+      ))}
+    </div>
+  )
+}
+
+function SnowEffect() {
+  const flakes = React.useMemo(() =>
+    Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      left: `${Math.random() * 100}%`,
+      delay: `${Math.random() * 5}s`,
+      duration: `${4 + Math.random() * 6}s`,
+      size: `${8 + Math.random() * 8}px`,
+    })), [])
+  return (
+    <div className="snow-container">
+      {flakes.map(f => (
+        <div key={f.id} className="snowflake" style={{ left: f.left, animationDelay: f.delay, animationDuration: f.duration, fontSize: f.size }}>❄</div>
+      ))}
+    </div>
+  )
+}
+
+function MagicParticles() {
+  const particles = React.useMemo(() =>
+    Array.from({ length: 15 }, (_, i) => ({
+      id: i,
+      left: `${10 + Math.random() * 80}%`,
+      top: `${10 + Math.random() * 80}%`,
+      delay: `${Math.random() * 4}s`,
+      duration: `${2 + Math.random() * 3}s`,
+      size: `${3 + Math.random() * 4}px`,
+    })), [])
+  return (
+    <div className="particles-container">
+      {particles.map(p => (
+        <div key={p.id} className="particle" style={{ left: p.left, top: p.top, animationDelay: p.delay, animationDuration: p.duration, width: p.size, height: p.size }} />
+      ))}
+    </div>
+  )
+}
+
+function CloudBg() {
+  const clouds = React.useMemo(() =>
+    Array.from({ length: 5 }, (_, i) => ({
+      id: i,
+      top: `${10 + Math.random() * 60}%`,
+      width: `${120 + Math.random() * 160}px`,
+      height: `${60 + Math.random() * 80}px`,
+      delay: `${i * 3 + Math.random() * 2}s`,
+      duration: `${15 + Math.random() * 10}s`,
+    })), [])
+  return (
+    <div className="cloud-container">
+      {clouds.map(c => (
+        <div key={c.id} className="cloud" style={{ top: c.top, width: c.width, height: c.height, animationDelay: c.delay, animationDuration: c.duration }} />
       ))}
     </div>
   )
@@ -154,6 +215,16 @@ export default function ProfilePage() {
   const hasDiamond = profile?.purchasedItems?.includes('diamond_badge') || isOwner;
   const hasMatrix = profile?.purchasedItems?.includes('matrix_effect') || isOwner;
   const hasGhost = profile?.purchasedItems?.includes('ghost_mode') || isOwner;
+  const hasGoldenFrame = profile?.purchasedItems?.includes('golden_frame') || isOwner;
+  const hasSnow = profile?.purchasedItems?.includes('snow_effect') || isOwner;
+  const hasMusicBadge = profile?.purchasedItems?.includes('music_badge') || isOwner;
+  const hasBattleTitle = profile?.purchasedItems?.includes('battle_title') || isOwner;
+  const hasHpBar = profile?.purchasedItems?.includes('hp_bar') || isOwner;
+  const hasChampionCrown = profile?.purchasedItems?.includes('champion_crown') || isOwner;
+  const hasMagicParticles = profile?.purchasedItems?.includes('magic_particles') || isOwner;
+  const hasCloudBg = profile?.purchasedItems?.includes('cloud_bg') || isOwner;
+  const hasCustomTheme = profile?.purchasedItems?.includes('custom_theme') || isOwner;
+  const hasStealthMode = profile?.purchasedItems?.includes('stealth_mode') || isOwner;
 
   const userAchievements = profile?.achievements || [];
   const purchasedItems = profile?.purchasedItems || [];
@@ -162,12 +233,17 @@ export default function ProfilePage() {
     <div className="p-3 sm:p-4 md:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-8 animate-reveal pb-32 overflow-x-hidden">
       <div className="relative">
         <div className={cn(
-          "h-40 sm:h-48 md:h-72 rounded-[2rem] sm:rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl",
+          "h-40 sm:h-48 md:h-72 rounded-[2rem] sm:rounded-[2.5rem] relative overflow-hidden transition-all duration-700",
           hasMatrix ? "bg-gradient-to-br from-black via-green-950 to-black" :
-          hasFire ? "bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500" : "cyber-gradient"
+          hasFire ? "bg-gradient-to-br from-red-600 via-orange-500 to-yellow-500" :
+          hasCustomTheme ? "bg-gradient-to-br from-fuchsia-600 via-violet-500 to-cyan-500" :
+          hasCloudBg ? "bg-gradient-to-br from-slate-800 via-blue-900 to-slate-800" : "cyber-gradient"
         )}>
           {hasMatrix && <MatrixRain />}
           {hasFire && !hasMatrix && <div className="absolute inset-0 flex items-center justify-center opacity-20"><Flame className="size-32 sm:size-48 md:size-64 text-white animate-pulse" /></div>}
+          {hasSnow && <SnowEffect />}
+          {hasMagicParticles && <MagicParticles />}
+          {hasCloudBg && !hasMatrix && <CloudBg />}
           <div className="absolute inset-0 bg-black/15 backdrop-blur-[1px] z-[2]" />
           <div className="absolute top-3 right-3 sm:top-6 sm:right-6 flex gap-2 z-20">
              <Button variant="secondary" className="bg-white/10 hover:bg-white/20 border-white/10 text-white backdrop-blur-md rounded-xl sm:rounded-2xl h-9 sm:h-12 px-3 sm:px-6 font-bold text-xs sm:text-sm" onClick={() => setIsEditing(!isEditing)}>
@@ -177,9 +253,9 @@ export default function ProfilePage() {
         </div>
 
         <div className="px-4 sm:px-6 md:px-12 -mt-16 sm:-mt-20 md:-mt-24 relative z-10 flex flex-col md:flex-row items-center md:items-end gap-4 sm:gap-8 text-center md:text-left">
-          <div className={cn("relative group shrink-0", hasGhost && "ghost-shimmer")}>
+          <div className={cn("relative group shrink-0", hasGhost && "ghost-shimmer", hasGoldenFrame && "golden-frame rounded-full")}>
             <Avatar className={cn(
-              "size-28 sm:size-40 md:size-52 border-[6px] sm:border-[8px] border-[#0c0805] shadow-2xl transition-all duration-500",
+              "size-28 sm:size-40 md:size-52 border-[6px] sm:border-[8px] border-[#0c0805] transition-all duration-500",
               hasAura && "ring-4 ring-yellow-500 ring-offset-4 ring-offset-[#0c0805]",
               hasRainbowAura && "aura-rainbow",
               hasGhost && "opacity-80"
@@ -197,6 +273,11 @@ export default function ProfilePage() {
                 <Ghost className="size-4 sm:size-5 text-slate-400" />
               </div>
             )}
+            {hasHpBar && (
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-[80%] hp-bar">
+                <div className="hp-bar-fill" style={{ width: `${Math.min(((profile.level || 1) / 12) * 100, 100)}%` }} />
+              </div>
+            )}
           </div>
           <div className="flex-1 pb-2 sm:pb-4 md:pb-6 space-y-3 sm:space-y-4 min-w-0">
              <div className="flex flex-col md:flex-row md:items-center gap-2 sm:gap-4 justify-center md:justify-start">
@@ -207,16 +288,18 @@ export default function ProfilePage() {
                )}>
                  {profile.displayName}
                </h1>
-               <div className="flex items-center gap-2 sm:gap-3 justify-center md:justify-start">
-                  {(hasVIP || isOwner) && <Crown className="size-7 sm:size-10 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.6)]" />}
+               <div className="flex items-center gap-2 sm:gap-3 justify-center md:justify-start flex-wrap">
+                  {hasChampionCrown && <Crown className="size-8 sm:size-12 text-yellow-400 champion-crown" />}
+                  {(hasVIP || isOwner) && !hasChampionCrown && <Crown className="size-7 sm:size-10 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.6)]" />}
                   {hasProfessor && <GraduationCap className="size-7 sm:size-10 text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.6)]" />}
                   {hasDiamond && <Gem className="size-7 sm:size-10 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]" />}
+                  {hasMusicBadge && <Music className="size-6 sm:size-8 text-violet-400 music-note" />}
                   {hasGhost && <Ghost className="size-7 sm:size-10 text-slate-400 drop-shadow-[0_0_15px_rgba(148,163,184,0.4)]" />}
                </div>
              </div>
 
              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-4">
-                <Badge className={cn("border-0 px-4 sm:px-6 py-1.5 sm:py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl shadow-lg", isOwner ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black" : hasFire ? "bg-red-500" : "cyber-gradient")}>
+                <Badge className={cn("border-0 px-4 sm:px-6 py-1.5 sm:py-2 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-xl", isOwner ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black" : hasFire ? "bg-red-500" : "cyber-gradient")}>
                   {isOwner ? "OWNER" : hasFire ? "LEGEND ON FIRE" : (profile.gradeLevel || "Школяр")}
                 </Badge>
                 <div className="flex items-center gap-2 sm:gap-4 bg-white/5 border border-white/10 px-3 sm:px-6 py-1.5 sm:py-2 rounded-xl backdrop-blur-md">
@@ -225,6 +308,8 @@ export default function ProfilePage() {
                   <span className="text-primary font-black uppercase text-[9px] sm:text-[10px] tracking-widest">{profile.xp || 0} XP</span>
                 </div>
                 {hasBoost && <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 gap-1.5 sm:gap-2 h-8 sm:h-10 px-3 sm:px-4 rounded-xl font-black uppercase text-[8px] sm:text-[9px]"><Zap className="size-3 sm:size-3.5" /> 2X XP</Badge>}
+                {hasBattleTitle && <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 gap-1.5 sm:gap-2 h-8 sm:h-10 px-3 sm:px-4 rounded-xl font-black uppercase text-[8px] sm:text-[9px]"><Swords className="size-3 sm:size-3.5" /> ВОЇН</Badge>}
+                {hasStealthMode && <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30 gap-1.5 sm:gap-2 h-8 sm:h-10 px-3 sm:px-4 rounded-xl font-black uppercase text-[8px] sm:text-[9px]">Офлайн</Badge>}
              </div>
           </div>
         </div>
@@ -232,7 +317,7 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 pt-4 sm:pt-6">
         <div className="space-y-4 sm:space-y-6">
-           <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[2.5rem] p-3 sm:p-4 shadow-2xl">
+           <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[2.5rem] p-3 sm:p-4">
               <CardHeader className="p-3 sm:p-6"><CardTitle className="text-lg sm:text-xl flex items-center gap-3 text-white"><Trophy className="size-5 sm:size-6 text-primary" /> Статистика</CardTitle></CardHeader>
               <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-6 pt-0">
                  <StatItem icon={<Trophy className="text-yellow-500" />} label="XP" value={(profile.xp || 0).toLocaleString()} />
@@ -242,7 +327,7 @@ export default function ProfilePage() {
               </CardContent>
            </Card>
 
-           <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[2.5rem] p-3 sm:p-4 shadow-2xl">
+           <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[2.5rem] p-3 sm:p-4">
               <CardHeader className="p-3 sm:p-6">
                 <CardTitle className="text-lg sm:text-xl text-white flex items-center gap-3">
                   <Award className="size-5 sm:size-6 text-primary" /> Досягнення
@@ -282,7 +367,7 @@ export default function ProfilePage() {
 
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
            {isEditing ? (
-             <Card className="glass-panel border-0 animate-in slide-in-from-top-4 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl">
+             <Card className="glass-panel border-0 animate-in slide-in-from-top-4 rounded-[2rem] sm:rounded-[2.5rem]">
                 <CardHeader className="p-6 sm:p-10 pb-4">
                   <CardTitle className="text-xl sm:text-2xl font-bold text-white">Редагування профілю</CardTitle>
                   <CardDescription>Змініть те, як інші бачать ваш профіль у School Hub.</CardDescription>
@@ -298,12 +383,12 @@ export default function ProfilePage() {
                    </div>
                    <div className="flex gap-3 sm:gap-4 justify-end pt-4 sm:pt-6">
                       <Button variant="ghost" className="rounded-xl sm:rounded-2xl h-11 sm:h-14 px-6 sm:px-10 font-bold text-sm" onClick={() => setIsEditing(false)}>Скасувати</Button>
-                      <Button className="cyber-gradient border-0 rounded-xl sm:rounded-2xl h-11 sm:h-14 px-8 sm:px-16 font-black uppercase text-[10px] sm:text-xs tracking-widest shadow-xl" onClick={handleUpdateProfile}>Зберегти</Button>
+                      <Button className="cyber-gradient border-0 rounded-xl sm:rounded-2xl h-11 sm:h-14 px-8 sm:px-16 font-black uppercase text-[10px] sm:text-xs tracking-widest" onClick={handleUpdateProfile}>Зберегти</Button>
                    </div>
                 </CardContent>
              </Card>
            ) : (
-             <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[3rem] shadow-2xl">
+             <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[3rem]">
                 <CardContent className="p-6 sm:p-12 space-y-6 sm:space-y-8">
                    <div className="space-y-3 sm:space-y-4">
                       <h3 className="text-xs font-black text-primary uppercase tracking-[0.4em]">Біографія</h3>
@@ -336,7 +421,7 @@ export default function ProfilePage() {
 function StatItem({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | number }) {
   return (
     <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all group shadow-inner">
-       <div className="size-9 sm:size-11 rounded-xl sm:rounded-2xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shrink-0">
+       <div className="size-9 sm:size-11 rounded-xl sm:rounded-2xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
           {icon}
        </div>
        <span className="text-[9px] sm:text-[10px] text-muted-foreground font-black uppercase tracking-widest shrink-0">{label}</span>

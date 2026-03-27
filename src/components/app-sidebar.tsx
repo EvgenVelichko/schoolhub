@@ -95,7 +95,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-white/5 bg-sidebar">
       <SidebarHeader className="p-4">
         <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-3">
-          <div className="size-9 rounded-xl cyber-gradient flex items-center justify-center shadow-lg shrink-0">
+          <div className="size-9 rounded-xl cyber-gradient flex items-center justify-center shrink-0">
             <Zap className="text-white size-5" />
           </div>
           {!isCollapsed && (
@@ -218,7 +218,7 @@ export function AppSidebar() {
               )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end" className="w-52 glass-panel border-white/10 rounded-xl p-1 shadow-2xl">
+          <DropdownMenuContent side="right" align="end" className="w-52 glass-panel border-white/10 rounded-xl p-1">
             <DropdownMenuItem asChild className="rounded-lg h-9 cursor-pointer focus:bg-primary/20">
               <Link href="/profile" className="flex items-center w-full font-bold text-xs"><User className="size-4 mr-2 text-primary" /> Профіль</Link>
             </DropdownMenuItem>

@@ -26,12 +26,16 @@ import {
   Palette,
   Music,
   Hammer,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { useUser, useFirestore, useCollection } from "@/firebase"
-import { collection, query, orderBy } from "firebase/firestore"
+import { useUser, useFirestore, useCollection, useDoc } from "@/firebase"
+import { collection, query, orderBy, doc, setDoc, serverTimestamp } from "firebase/firestore"
+import { toast } from "@/hooks/use-toast"
 import { format, startOfWeek, addDays, isWeekend, addWeeks } from "date-fns"
 import { uk } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -120,9 +124,16 @@ export default function SchedulePage() {
   const { user, loading: userLoading } = useUser()
   const db = useFirestore()
 
+  const userDocRef = React.useMemo(() => (user ? doc(db, "users", user.uid) : null), [db, user])
+  const { data: profile } = useDoc(userDocRef)
+  const canEditHw = profile?.role === 'tester' || profile?.role === 'admin' || profile?.role === 'owner'
+
   const today = new Date()
   const [weekOffset, setWeekOffset] = React.useState(0)
   const [selectedDay, setSelectedDay] = React.useState<number | null>(null)
+  const [editingHw, setEditingHw] = React.useState<string | null>(null) // "date_order_subject"
+  const [hwDraft, setHwDraft] = React.useState("")
+  const [savingHw, setSavingHw] = React.useState(false)
 
   const baseWeekStart = React.useMemo(() => getWeekStart(today), [])
   const currentWeekStart = React.useMemo(() => addWeeks(baseWeekStart, weekOffset), [baseWeekStart, weekOffset])
@@ -132,6 +143,51 @@ export default function SchedulePage() {
   ), [db, user])
 
   const { data: allLessons, loading: lessonsLoading } = useCollection(lessonsQuery)
+
+  // Global homework collection — shared across all users
+  const hwQuery = React.useMemo(() => query(collection(db, "homework"), orderBy("updatedAt", "desc")), [db])
+  const { data: globalHomework } = useCollection(hwQuery)
+
+  const hwMap = React.useMemo(() => {
+    const map = new Map<string, string>()
+    if (globalHomework) {
+      for (const hw of globalHomework as any[]) {
+        map.set(hw.id, hw.text)
+      }
+    }
+    return map
+  }, [globalHomework])
+
+  const getHomework = (lesson: Lesson) => {
+    const key = `${lesson.date}_${lesson.order}_${lesson.subject}`
+    return hwMap.get(key) || lesson.homework
+  }
+
+  const getLessonHwKey = (lesson: Lesson) => `${lesson.date}_${lesson.order}_${lesson.subject}`
+
+  const handleSaveHw = async (lesson: Lesson) => {
+    if (!editingHw) return
+    setSavingHw(true)
+    try {
+      const key = getLessonHwKey(lesson)
+      await setDoc(doc(db, "homework", key), {
+        text: hwDraft,
+        subject: lesson.subject,
+        date: lesson.date,
+        order: lesson.order,
+        updatedBy: user?.uid,
+        updatedAt: serverTimestamp(),
+      })
+      toast({ title: "Збережено", description: "Домашнє завдання оновлено для всіх" })
+      setEditingHw(null)
+      setHwDraft("")
+    } catch (e) {
+      console.error(e)
+      toast({ title: "Помилка", description: "Не вдалося зберегти" })
+    } finally {
+      setSavingHw(false)
+    }
+  }
 
   const getLessonsForDay = (dayOffset: number): Lesson[] => {
     const targetDate = addDays(currentWeekStart, dayOffset)
@@ -250,7 +306,7 @@ export default function SchedulePage() {
               className={cn(
                 "flex flex-col items-center gap-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl border transition-all duration-300 shrink-0 min-w-[56px] sm:min-w-[64px]",
                 isSelected
-                  ? "bg-primary/15 border-primary/40 shadow-lg shadow-primary/10"
+                  ? "bg-primary/15 border-primary/40"
                   : isToday
                     ? "bg-white/[0.06] border-primary/20"
                     : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
@@ -337,7 +393,7 @@ export default function SchedulePage() {
                     return (
                       <Card
                         key={lIdx}
-                        className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden hover:bg-white/[0.04] transition-all shadow-2xl flex flex-col group"
+                        className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden hover:bg-white/[0.04] transition-all flex flex-col group"
                       >
                         {/* Top bar — time + order badge */}
                         <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
@@ -378,16 +434,53 @@ export default function SchedulePage() {
                           </div>
 
                           {/* Homework */}
-                          {lesson.homework && (
-                            <div className="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-primary/5 border border-primary/10 mt-auto">
-                              <div className="flex items-start gap-2">
-                                <BookOpen className="size-3 sm:size-3.5 text-primary/50 mt-0.5 shrink-0" />
-                                <p className="text-[11px] sm:text-xs text-white/70 leading-relaxed">
-                                  <Linkify text={lesson.homework} />
-                                </p>
+                          {(() => {
+                            const hwKey = getLessonHwKey(lesson)
+                            const hw = getHomework(lesson)
+                            const isEditing = editingHw === hwKey
+
+                            if (isEditing) {
+                              return (
+                                <div className="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-primary/10 border border-primary/20 mt-auto space-y-2">
+                                  <textarea
+                                    value={hwDraft}
+                                    onChange={e => setHwDraft(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white/90 resize-none focus:outline-none focus:border-primary/40 placeholder:text-white/30"
+                                    rows={3}
+                                    placeholder="Домашнє завдання..."
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-2 justify-end">
+                                    <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] rounded-lg" onClick={() => { setEditingHw(null); setHwDraft("") }} disabled={savingHw}>
+                                      <X className="size-3 mr-1" /> Скасувати
+                                    </Button>
+                                    <Button size="sm" className="h-7 px-3 text-[10px] rounded-lg cyber-gradient" onClick={() => handleSaveHw(lesson)} disabled={savingHw}>
+                                      <Check className="size-3 mr-1" /> {savingHw ? "..." : "Зберегти"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              )
+                            }
+
+                            return (
+                              <div className="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-primary/5 border border-primary/10 mt-auto">
+                                <div className="flex items-start gap-2">
+                                  <BookOpen className="size-3 sm:size-3.5 text-primary/50 mt-0.5 shrink-0" />
+                                  <p className="text-[11px] sm:text-xs text-white/70 leading-relaxed flex-1">
+                                    {hw ? <Linkify text={hw} /> : <span className="italic text-white/30">Немає ДЗ</span>}
+                                  </p>
+                                  {canEditHw && (
+                                    <button
+                                      onClick={() => { setEditingHw(hwKey); setHwDraft(hw || "") }}
+                                      className="shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors text-white/30 hover:text-primary"
+                                    >
+                                      <Pencil className="size-3" />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )
+                          })()}
                         </div>
                       </Card>
                     )

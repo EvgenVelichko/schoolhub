@@ -118,16 +118,16 @@ export default function SupportChat() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="bg-red-500/5 border border-red-500/20 p-8 rounded-[2.5rem] text-center space-y-6 mb-4 shadow-2xl backdrop-blur-md"
+              className="bg-red-500/5 border border-red-500/20 p-8 rounded-[2.5rem] text-center space-y-6 mb-4 backdrop-blur-md"
             >
-              <div className="size-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto shadow-lg shadow-red-500/10">
+              <div className="size-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
                 <AlertCircle className="size-8 text-red-500" />
               </div>
               <div className="space-y-2">
                 <p className="text-xl font-headline font-bold text-white">Звернення закрито</p>
                 <p className="text-xs text-muted-foreground">Ви можете видалити цей репорт, щоб почати новий.</p>
               </div>
-              <Button variant="destructive" className="w-full h-14 rounded-2xl font-black text-sm uppercase shadow-xl active:scale-95 transition-all" onClick={handleClearAndClose}>
+              <Button variant="destructive" className="w-full h-14 rounded-2xl font-black text-sm uppercase active:scale-95 transition-all" onClick={handleClearAndClose}>
                 ВИДАЛИТИ РЕПОРТ
               </Button>
             </motion.div>
@@ -153,7 +153,7 @@ export default function SupportChat() {
                 )}
                 <div className={cn("space-y-1.5", isOwn ? 'items-end' : 'items-start')}>
                   <div className={cn(
-                    "p-4 rounded-2xl text-[15px] shadow-xl transition-all leading-relaxed",
+                    "p-4 rounded-2xl text-[15px] transition-all leading-relaxed",
                     isOwn ? 'chat-bubble-own' : 'chat-bubble-other'
                   )}>
                     {msg.text}
@@ -190,7 +190,7 @@ export default function SupportChat() {
           disabled={isClosed}
         />
         <Button 
-          className="cyber-gradient size-14 rounded-2xl shrink-0 shadow-xl shadow-primary/20 active:scale-95 transition-all" 
+          className="cyber-gradient size-14 rounded-2xl shrink-0 active:scale-95 transition-all" 
           onClick={handleSend}
           disabled={isClosed}
         >

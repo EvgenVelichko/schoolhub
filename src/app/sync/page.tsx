@@ -190,7 +190,7 @@ export default function SyncPage() {
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-12 animate-reveal">
       <div className="text-center space-y-6">
-        <div className="size-24 rounded-[2rem] cyber-gradient flex items-center justify-center mx-auto shadow-2xl shadow-primary/30 group">
+        <div className="size-24 rounded-[2rem] cyber-gradient flex items-center justify-center mx-auto group">
           <Globe className="text-white size-12 group-hover:rotate-12 transition-transform duration-500" />
         </div>
         <div className="space-y-2">
@@ -200,7 +200,7 @@ export default function SyncPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <Card className="glass-panel border-0 p-8 space-y-8 rounded-[2.5rem] shadow-2xl">
+        <Card className="glass-panel border-0 p-8 space-y-8 rounded-[2.5rem]">
           <div className="space-y-5">
             <div className="space-y-2">
               <Label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Логін NZ.ua</Label>
@@ -211,7 +211,7 @@ export default function SyncPage() {
               <Input type="password" placeholder="••••••••" className="bg-white/5 border-white/10 h-16 rounded-2xl px-6 text-lg focus:ring-primary/30" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isSyncing} />
             </div>
           </div>
-          <Button className="w-full cyber-gradient h-18 rounded-2xl font-black text-xl shadow-xl shadow-primary/20 active:scale-95 transition-all" onClick={handleSync} disabled={isSyncing}>
+          <Button className="w-full cyber-gradient h-18 rounded-2xl font-black text-xl active:scale-95 transition-all" onClick={handleSync} disabled={isSyncing}>
             {isSyncing ? <Loader2 className="animate-spin mr-3 size-6" /> : "УВІЙТИ ТА ПЕРЕВІРИТИ LVL"}
           </Button>
         </Card>

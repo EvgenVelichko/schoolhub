@@ -22,7 +22,9 @@
       "Bash(do echo:*)",
       "Bash(rm:*)",
       "Bash(find:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(wc:*)",
+      "Bash(read f:*)"
     ]
   }
 }

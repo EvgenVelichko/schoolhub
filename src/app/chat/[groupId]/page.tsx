@@ -559,7 +559,7 @@ export default function ClassroomChat() {
                   <Settings className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass-panel border-white/10 rounded-xl p-1 shadow-2xl w-56">
+              <DropdownMenuContent align="end" className="glass-panel border-white/10 rounded-xl p-1 w-56">
                 <DropdownMenuItem onClick={toggleChannelMode} className="gap-2.5 font-bold text-xs rounded-lg text-white h-10">
                   {group?.mode === 'channel' ? <Unlock className="size-4 text-green-400" /> : <Lock className="size-4 text-yellow-400" />}
                   {group?.mode === 'channel' ? 'Увімкнути груповий режим' : 'Увімкнути режим каналу'}
@@ -683,7 +683,7 @@ export default function ClassroomChat() {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="glass-panel border border-white/10 rounded-[2rem] w-full max-w-md p-6 space-y-4 shadow-2xl"
+              className="glass-panel border border-white/10 rounded-[2rem] w-full max-w-md p-6 space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">
@@ -739,7 +739,7 @@ export default function ClassroomChat() {
                 <span className="text-xs text-white/70 font-medium">Анонімне голосування</span>
               </label>
 
-              <Button className="w-full h-12 rounded-2xl cyber-gradient font-bold text-sm shadow-xl shadow-primary/20" onClick={handleCreatePoll} disabled={!pollQuestion.trim() || pollOptions.filter(o => o.trim()).length < 2}>
+              <Button className="w-full h-12 rounded-2xl cyber-gradient font-bold text-sm" onClick={handleCreatePoll} disabled={!pollQuestion.trim() || pollOptions.filter(o => o.trim()).length < 2}>
                 Створити опитування
               </Button>
             </motion.div>
@@ -761,7 +761,7 @@ export default function ClassroomChat() {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="glass-panel border border-white/10 rounded-[2rem] w-full max-w-md p-6 space-y-4 shadow-2xl"
+              className="glass-panel border border-white/10 rounded-[2rem] w-full max-w-md p-6 space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">
@@ -784,7 +784,7 @@ export default function ClassroomChat() {
                 autoFocus
               />
 
-              <Button className="w-full h-12 rounded-2xl bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 font-bold text-sm border border-yellow-500/30 shadow-xl" onClick={handleCreateAnnouncement} disabled={!announcementText.trim()}>
+              <Button className="w-full h-12 rounded-2xl bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 font-bold text-sm border border-yellow-500/30" onClick={handleCreateAnnouncement} disabled={!announcementText.trim()}>
                 Опублікувати
               </Button>
             </motion.div>
@@ -919,7 +919,7 @@ export default function ClassroomChat() {
                                 <MoreVertical className="size-3.5 opacity-50 text-white" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="glass-panel border-white/10 rounded-xl p-1 shadow-2xl w-48">
+                            <DropdownMenuContent align="end" className="glass-panel border-white/10 rounded-xl p-1 w-48">
                               <DropdownMenuItem onClick={() => setReplyTo(msg)} className="gap-2.5 font-bold text-xs rounded-lg text-white h-9">
                                 <Reply className="size-3.5" /> Відповісти
                               </DropdownMenuItem>
@@ -947,7 +947,7 @@ export default function ClassroomChat() {
                       <div className={cn(
                         "relative px-3.5 py-2.5 text-[13px] sm:text-sm leading-relaxed whitespace-pre-wrap",
                         isOwn
-                          ? "cyber-gradient text-white rounded-2xl rounded-br-sm shadow-lg shadow-primary/10"
+                          ? "cyber-gradient text-white rounded-2xl rounded-br-sm"
                           : "bg-white/[0.06] text-white rounded-2xl rounded-bl-sm border border-white/5"
                       )}>
                         {/* Reply preview */}
@@ -983,7 +983,7 @@ export default function ClassroomChat() {
                                 <MoreVertical className="size-3.5 opacity-50 text-white" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="glass-panel border-white/10 rounded-xl p-1 shadow-2xl w-48">
+                            <DropdownMenuContent align="start" className="glass-panel border-white/10 rounded-xl p-1 w-48">
                               <DropdownMenuItem onClick={() => setReplyTo(msg)} className="gap-2.5 font-bold text-xs rounded-lg text-white h-9">
                                 <Reply className="size-3.5" /> Відповісти
                               </DropdownMenuItem>
@@ -1034,7 +1034,7 @@ export default function ClassroomChat() {
                               className={cn(
                                 "px-2 py-0.5 rounded-full text-[11px] font-bold border transition-all hover:scale-105",
                                 users.includes(user?.uid)
-                                  ? 'bg-primary/20 border-primary/40 text-primary shadow-sm shadow-primary/10'
+                                  ? 'bg-primary/20 border-primary/40 text-primary shadow-sm'
                                   : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                               )}
                             >
@@ -1090,7 +1090,7 @@ export default function ClassroomChat() {
           >
             <Button
               size="icon"
-              className="size-10 rounded-full bg-primary/90 hover:bg-primary text-white shadow-xl shadow-primary/20"
+              className="size-10 rounded-full bg-primary/90 hover:bg-primary text-white"
               onClick={scrollToBottom}
             >
               <ArrowDown className="size-4" />
@@ -1172,9 +1172,9 @@ export default function ClassroomChat() {
               </div>
               <Button
                 className={cn(
-                  "size-12 rounded-2xl shrink-0 shadow-xl transition-all active:scale-95",
+                  "size-12 rounded-2xl shrink-0 transition-all active:scale-95",
                   text.trim()
-                    ? "cyber-gradient border-0 shadow-primary/20"
+                    ? "cyber-gradient border-0"
                     : "bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10"
                 )}
                 onClick={handleSend}

@@ -31,6 +31,10 @@ export default function Leaderboard() {
     return userData?.purchasedItems?.includes('ghost_mode')
   }
 
+  const isStealthUser = (userData: any) => {
+    return userData?.purchasedItems?.includes('stealth_mode')
+  }
+
   const getDisplayName = (userData: any) => {
     if (isGhostUser(userData) && userData.id !== user?.uid) return "Невідомий учень"
     return userData.displayName
@@ -79,7 +83,7 @@ export default function Leaderboard() {
               className={cn(
                 "glass-panel border-0 relative overflow-hidden transition-all",
                 !isGhost && "cursor-pointer hover:scale-[1.03] sm:hover:scale-[1.07]",
-                index === 0 ? 'sm:scale-105 shadow-primary/20 shadow-2xl z-10' : 'sm:scale-95 opacity-90',
+                index === 0 ? 'sm:scale-105 z-10' : 'sm:scale-95 opacity-90',
                 isGhost && "ghost-shimmer"
               )}
               onClick={() => handleUserClick(userData)}
@@ -114,7 +118,7 @@ export default function Leaderboard() {
                   {getDisplayName(userData)}
                 </CardTitle>
                 <p className="text-[9px] sm:text-sm text-muted-foreground truncate">
-                  {isGhost ? "Ghost Mode" : (userData.gradeLevel || "Рівень " + (userData.level || 1))}
+                  {isGhost ? "Ghost Mode" : isStealthUser(userData) && userData.id !== user?.uid ? "Офлайн" : (userData.gradeLevel || "Рівень " + (userData.level || 1))}
                 </p>
               </CardHeader>
               <CardContent className="text-center pt-1 sm:pt-2 px-2 sm:px-6 pb-3 sm:pb-6">
@@ -166,7 +170,7 @@ export default function Leaderboard() {
                         {getDisplayName(userData)}
                       </p>
                       <p className="text-[9px] sm:text-xs text-muted-foreground truncate">
-                        {isGhost ? "Ghost Mode" : (userData.gradeLevel || "Учень")}
+                        {isGhost ? "Ghost Mode" : isStealthUser(userData) && userData.id !== user?.uid ? "Офлайн" : (userData.gradeLevel || "Учень")}
                       </p>
                     </div>
                     {isGhost && <Ghost className="size-4 text-slate-500 shrink-0 ml-1" />}

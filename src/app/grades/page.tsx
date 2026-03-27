@@ -113,7 +113,7 @@ export default function GradesPage() {
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 col-span-1 flex flex-col justify-between group transition-all shadow-2xl">
+        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 col-span-1 flex flex-col justify-between group transition-all">
           <div className="size-10 sm:size-12 md:size-14 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 mb-4 sm:mb-6 md:mb-8">
              <TrendingUp className="text-primary size-5 sm:size-6 md:size-7" />
           </div>
@@ -123,7 +123,7 @@ export default function GradesPage() {
           </div>
         </Card>
 
-        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 col-span-2 md:col-span-3 overflow-hidden relative shadow-2xl">
+        <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-4 sm:p-6 md:p-8 col-span-2 md:col-span-3 overflow-hidden relative">
           <div className="relative z-10 h-full flex flex-col justify-between">
             <div className="space-y-2">
               <h3 className="text-xl md:text-2xl font-bold flex items-center gap-3"><Calculator className="size-6 text-primary" /> Прогноз Успіху</h3>
@@ -148,7 +148,7 @@ export default function GradesPage() {
       </div>
 
       <Tabs defaultValue="list" className="space-y-6 sm:space-y-8">
-        <TabsList className="glass-panel p-1 rounded-xl sm:rounded-2xl h-11 sm:h-14 border-0 w-full md:w-fit flex shadow-xl overflow-x-auto scrollbar-none">
+        <TabsList className="glass-panel p-1 rounded-xl sm:rounded-2xl h-11 sm:h-14 border-0 w-full md:w-fit flex overflow-x-auto scrollbar-none">
           <TabsTrigger value="list" className="rounded-lg sm:rounded-xl px-4 sm:px-6 md:px-10 h-full font-bold text-xs sm:text-sm data-[state=active]:cyber-gradient shrink-0">Всі оцінки</TabsTrigger>
           <TabsTrigger value="subjects" className="rounded-lg sm:rounded-xl px-4 sm:px-6 md:px-10 h-full font-bold text-xs sm:text-sm data-[state=active]:cyber-gradient shrink-0">Аналітика</TabsTrigger>
         </TabsList>
@@ -167,7 +167,7 @@ export default function GradesPage() {
                 onClick={() => setActiveFilter(f.id)}
                 className={cn(
                   "cursor-pointer h-10 px-6 rounded-xl border transition-all text-[10px] font-black uppercase tracking-widest",
-                  activeFilter === f.id ? "cyber-gradient border-0 text-white shadow-lg shadow-primary/30" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                  activeFilter === f.id ? "cyber-gradient border-0 text-white" : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
                 )}
               >
                 {f.label}
@@ -185,7 +185,7 @@ export default function GradesPage() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: Math.min(i * 0.02, 0.5) }}
                 >
-                  <Card className="glass-panel border-0 rounded-[1.5rem] md:rounded-[2rem] p-5 flex items-center justify-between group transition-all shadow-lg hover:border-primary/40">
+                  <Card className="glass-panel border-0 rounded-[1.5rem] md:rounded-[2rem] p-5 flex items-center justify-between group transition-all hover:border-primary/40">
                     <div className="flex items-center gap-4 min-w-0">
                       <div className={cn(
                         "size-12 md:size-14 rounded-2xl flex items-center justify-center text-2xl md:text-3xl font-black italic shrink-0",
@@ -226,7 +226,7 @@ export default function GradesPage() {
                   <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Проаналізовано {stat.count} оцінок</p>
                 </div>
                 <div className={cn(
-                  "size-10 md:size-12 rounded-xl flex items-center justify-center font-black italic shadow-lg shrink-0",
+                  "size-10 md:size-12 rounded-xl flex items-center justify-center font-black italic shrink-0",
                   stat.trend === 'up' ? 'bg-green-500/20 text-green-500' : 'bg-primary/20 text-primary'
                 )}>
                    {stat.average}

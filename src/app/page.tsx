@@ -37,7 +37,7 @@ import {
   CarouselItem, 
 } from "@/components/ui/carousel"
 import { useUser, useDoc, useFirestore, useCollection } from "@/firebase"
-import { doc, collection, query, orderBy, limit, writeBatch, serverTimestamp, where, Firestore, getDocs } from "firebase/firestore"
+import { doc, collection, query, orderBy, limit, writeBatch, serverTimestamp, where, Firestore } from "firebase/firestore"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format, parseISO, isAfter, set, addDays } from "date-fns"
@@ -121,6 +121,19 @@ export default function Home() {
   ) : null), [db, user])
   const { data: latestGrades } = useCollection(gradesQuery)
 
+  // Global homework — shared across all users
+  const hwQuery = React.useMemo(() => query(collection(db, "homework"), orderBy("updatedAt", "desc")), [db])
+  const { data: globalHomework } = useCollection(hwQuery)
+  const hwMap = React.useMemo(() => {
+    const map = new Map<string, string>()
+    if (globalHomework) {
+      for (const hw of globalHomework as any[]) {
+        map.set(hw.id, hw.text)
+      }
+    }
+    return map
+  }, [globalHomework])
+
   const [isSyncing, setIsSyncing] = React.useState(false)
 
   React.useEffect(() => {
@@ -189,21 +202,6 @@ export default function Home() {
         const ops: Array<{ type: 'set' | 'update'; ref: any; data: any; options?: any }> = [];
         const hasXpBoost = profile?.purchasedItems?.includes('xp_boost');
 
-        // Delete all existing grades and lessons to prevent duplicates.
-        const [existingGrades, existingLessons] = await Promise.all([
-          getDocs(collection(db, "users", user.uid, "grades")),
-          getDocs(collection(db, "users", user.uid, "lessons")),
-        ]);
-        const deleteRefs: any[] = [];
-        existingGrades.forEach(d => deleteRefs.push(d.ref));
-        existingLessons.forEach(d => deleteRefs.push(d.ref));
-        for (let i = 0; i < deleteRefs.length; i += MAX_BATCH_OPS) {
-          const chunk = deleteRefs.slice(i, i + MAX_BATCH_OPS);
-          const delBatch = writeBatch(db);
-          chunk.forEach(ref => delBatch.delete(ref));
-          await delBatch.commit();
-        }
-
         let totalScore = 0;
         let scoreCount = 0;
 
@@ -215,7 +213,7 @@ export default function Home() {
           }
           const rawId = g.sourceKey || `${g.subject}_${g.date}_${g.type}_${g.score}`;
           const safeId = "grd_" + rawId.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').toLowerCase();
-          ops.push({ type: 'set', ref: doc(db, "users", user.uid, "grades", safeId), data: { ...g, timestamp: g.timestamp, syncedAt: serverTimestamp() } });
+          ops.push({ type: 'set', ref: doc(db, "users", user.uid, "grades", safeId), data: { ...g, timestamp: g.timestamp, syncedAt: serverTimestamp() }, options: { merge: true } });
         });
 
         const calculatedXp = totalScore * (hasXpBoost ? 25 : 10);
@@ -285,7 +283,7 @@ export default function Home() {
       <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-8 py-4 sm:py-8 space-y-6 sm:space-y-10 animate-reveal">
         <header className="flex flex-col sm:flex-row justify-between items-center glass-panel p-4 sm:p-6 md:p-8 rounded-[2rem] sm:rounded-[2.5rem] border-0 relative overflow-hidden gap-4 sm:gap-6">
           <div className="flex items-center gap-3 sm:gap-4 md:gap-6 z-10 w-full sm:w-auto">
-            <Avatar className="size-12 sm:size-16 md:size-20 border-2 border-primary/30 shadow-2xl shrink-0">
+            <Avatar className="size-12 sm:size-16 md:size-20 border-2 border-primary/30 shrink-0">
               <AvatarImage src={profile?.photoURL} className="object-cover" />
               <AvatarFallback className="bg-primary/20 text-primary font-bold text-lg sm:text-xl">{user?.displayName?.[0]}</AvatarFallback>
             </Avatar>
@@ -316,7 +314,7 @@ export default function Home() {
         <section className="space-y-4 sm:space-y-6">
           <div className="flex items-center justify-between px-1 sm:px-2 gap-2">
              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-               <div className="size-10 sm:size-12 md:size-14 rounded-[1rem] sm:rounded-[1.5rem] bg-primary/10 flex items-center justify-center shadow-xl shrink-0">
+               <div className="size-10 sm:size-12 md:size-14 rounded-[1rem] sm:rounded-[1.5rem] bg-primary/10 flex items-center justify-center shrink-0">
                  <CalendarDays className="size-5 sm:size-6 md:size-7 text-primary" />
                </div>
                <div className="min-w-0">
@@ -336,7 +334,7 @@ export default function Home() {
                 <CarouselContent className="-ml-6">
                   {displayedLessons.map((lesson: any, i: number) => (
                     <CarouselItem key={i} className="pl-6 basis-[85%] sm:basis-1/2 lg:basis-1/3">
-                      <Card className="glass-panel border-0 rounded-[2.5rem] overflow-hidden hover:bg-white/5 transition-all shadow-2xl h-full flex flex-col group">
+                      <Card className="glass-panel border-0 rounded-[2.5rem] overflow-hidden hover:bg-white/5 transition-all h-full flex flex-col group">
                         <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                           <span className="text-[10px] font-black uppercase text-white/60 flex items-center gap-2">
                             <Clock className="size-3.5 text-primary" /> {lesson.time}
@@ -353,11 +351,14 @@ export default function Home() {
                               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mt-1.5">Каб. {lesson.room}</p>
         </div>
       </div>
-                          {lesson.homework && (
-                            <div className="p-4 rounded-3xl bg-primary/5 border border-primary/10 mt-auto">
-                              <p className="text-xs text-white/80 italic line-clamp-2 leading-relaxed">{lesson.homework}</p>
-                            </div>
-                          )}
+                          {(() => {
+                            const hw = hwMap.get(`${lesson.date}_${lesson.order}_${lesson.subject}`) || lesson.homework
+                            return hw ? (
+                              <div className="p-4 rounded-3xl bg-primary/5 border border-primary/10 mt-auto">
+                                <p className="text-xs text-white/80 italic line-clamp-2 leading-relaxed">{hw}</p>
+                              </div>
+                            ) : null
+                          })()}
                         </div>
            </Card>
                     </CarouselItem>
@@ -374,7 +375,7 @@ export default function Home() {
         </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-          <div className="glass-panel p-6 sm:p-10 border-0 rounded-[2rem] sm:rounded-[3.5rem] flex flex-col items-center justify-center text-center gap-4 sm:gap-8 shadow-2xl relative overflow-hidden group">
+          <div className="glass-panel p-6 sm:p-10 border-0 rounded-[2rem] sm:rounded-[3.5rem] flex flex-col items-center justify-center text-center gap-4 sm:gap-8 relative overflow-hidden group">
             <div className="text-5xl sm:text-6xl md:text-7xl font-black italic text-white text-glow z-10 leading-none">LV {profile?.level || 1}</div>
             <div className="w-full space-y-3 sm:space-y-4 z-10">
               <div className="flex justify-between text-[9px] sm:text-[10px] md:text-[11px] font-black uppercase tracking-widest text-muted-foreground">
@@ -393,7 +394,7 @@ export default function Home() {
             <div className="absolute -right-24 -bottom-24 size-80 bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
                            </div>
 
-          <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[3.5rem] md:col-span-2 overflow-hidden flex flex-col shadow-2xl">
+          <Card className="glass-panel border-0 rounded-[2rem] sm:rounded-[3.5rem] md:col-span-2 overflow-hidden flex flex-col">
             <CardHeader className="p-4 sm:p-6 md:p-8 bg-white/[0.02] border-b border-white/5 flex flex-row items-center justify-between">
               <CardTitle className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-white flex items-center gap-2 sm:gap-4">
                 <TrendingUp className="size-4 sm:size-5 text-green-500" /> Останні оцінки
@@ -407,7 +408,7 @@ export default function Home() {
                 <div key={i} className="p-3 sm:p-5 md:p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors gap-2">
                   <div className="flex items-center gap-2.5 sm:gap-4 md:gap-5 min-w-0">
                     <div className={cn(
-                      "size-10 sm:size-12 md:size-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-xl md:text-2xl font-black italic shadow-xl shrink-0",
+                      "size-10 sm:size-12 md:size-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-xl md:text-2xl font-black italic shrink-0",
                       parseInt(g.score) >= 10 ? 'bg-green-500/20 text-green-500' : 'bg-primary/20 text-primary'
                     )}>
                       {g.score}
