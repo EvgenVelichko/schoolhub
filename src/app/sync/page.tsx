@@ -12,6 +12,7 @@ import { useUser, useFirestore } from "@/firebase"
 import { doc, collection, writeBatch, serverTimestamp, Firestore, getDocs } from "firebase/firestore"
 import { useRouter } from "next/navigation"
 import { syncWithNzPortal } from "@/app/actions/nz-sync"
+import { createNotification } from "@/lib/notifications"
 
 const MAX_BATCH_OPS = 499;
 
@@ -165,7 +166,14 @@ export default function SyncPage() {
       });
 
       await commitInChunks(db, ops);
-      
+
+      await createNotification(db, user.uid, {
+        type: "grade",
+        title: "Нові оцінки",
+        body: `Синхронізовано ${data.grades.length} оцінок з NZ.ua`,
+        link: "/grades",
+      });
+
       setProgress(100)
       setStatus("Готово!")
       toast({ title: "Синхронізація успішна", description: `Ваш рівень тепер: ${avgScore}` })

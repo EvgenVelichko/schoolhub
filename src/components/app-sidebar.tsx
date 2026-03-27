@@ -38,6 +38,7 @@ import { useUser, useAuth, useDoc, useFirestore, useCollection } from "@/firebas
 import { signOut } from "firebase/auth"
 import { doc, collection, query } from "firebase/firestore"
 import { toast } from "@/hooks/use-toast"
+import { NotificationBell } from "@/components/notification-bell"
 import { cn } from "@/lib/utils"
 
 const menuItems = [
@@ -94,16 +95,19 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-white/5 bg-sidebar">
       <SidebarHeader className="p-4">
-        <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-3">
-          <div className="size-9 rounded-xl cyber-gradient flex items-center justify-center shrink-0">
-            <Zap className="text-white size-5" />
-          </div>
-          {!isCollapsed && (
-            <span className="font-headline font-bold text-lg text-white tracking-tighter">
-              SCHOOL <span className="text-primary">HUB</span>
-            </span>
-          )}
-        </Link>
+        <div className="flex items-center justify-between w-full">
+          <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-3">
+            <div className="size-9 rounded-xl cyber-gradient flex items-center justify-center shrink-0">
+              <Zap className="text-white size-5" />
+            </div>
+            {!isCollapsed && (
+              <span className="font-headline font-bold text-lg text-white tracking-tighter">
+                SCHOOL <span className="text-primary">HUB</span>
+              </span>
+            )}
+          </Link>
+          {!isCollapsed && <NotificationBell />}
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-2">

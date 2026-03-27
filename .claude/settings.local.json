@@ -24,7 +24,10 @@
       "Bash(find:*)",
       "Bash(gh api:*)",
       "Bash(wc:*)",
-      "Bash(read f:*)"
+      "Bash(read f:*)",
+      "Bash(cat:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)"
     ]
   }
 }

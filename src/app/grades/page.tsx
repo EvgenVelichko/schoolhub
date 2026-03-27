@@ -2,12 +2,12 @@
 "use client"
 
 import * as React from "react"
-import { 
-  TrendingUp, 
-  Calendar, 
-  Filter, 
-  Star, 
-  CheckCircle2, 
+import {
+  TrendingUp,
+  Calendar,
+  Filter,
+  Star,
+  CheckCircle2,
   AlertCircle,
   ChevronRight,
   Calculator,
@@ -15,7 +15,9 @@ import {
   History,
   Loader2,
   Trophy,
-  ArrowDownRight
+  ArrowDownRight,
+  Target,
+  Sparkles
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,6 +27,7 @@ import { useUser, useFirestore, useCollection } from "@/firebase"
 import { collection, query, orderBy } from "firebase/firestore"
 import { format, isAfter, subWeeks, subDays, parseISO, startOfYear, endOfYear } from "date-fns"
 import { uk } from "date-fns/locale"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -38,6 +41,8 @@ export default function GradesPage() {
   
   const { data: allGrades, loading } = useCollection(gradesQuery)
   const [activeFilter, setActiveFilter] = React.useState("all")
+  const [calcSubject, setCalcSubject] = React.useState("")
+  const [calcTarget, setCalcTarget] = React.useState("10")
 
   const filteredGrades = React.useMemo(() => {
     if (!allGrades) return []
@@ -151,6 +156,7 @@ export default function GradesPage() {
         <TabsList className="glass-panel p-1 rounded-xl sm:rounded-2xl h-11 sm:h-14 border-0 w-full md:w-fit flex overflow-x-auto scrollbar-none">
           <TabsTrigger value="list" className="rounded-lg sm:rounded-xl px-4 sm:px-6 md:px-10 h-full font-bold text-xs sm:text-sm data-[state=active]:cyber-gradient shrink-0">Всі оцінки</TabsTrigger>
           <TabsTrigger value="subjects" className="rounded-lg sm:rounded-xl px-4 sm:px-6 md:px-10 h-full font-bold text-xs sm:text-sm data-[state=active]:cyber-gradient shrink-0">Аналітика</TabsTrigger>
+          <TabsTrigger value="calculator" className="rounded-lg sm:rounded-xl px-4 sm:px-6 md:px-10 h-full font-bold text-xs sm:text-sm data-[state=active]:cyber-gradient shrink-0">Калькулятор</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
@@ -261,6 +267,124 @@ export default function GradesPage() {
               </div>
             </Card>
           ))}
+        </TabsContent>
+
+        <TabsContent value="calculator" className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+          {(() => {
+            const selectedStat = subjectStats.find(s => s.name === calcSubject)
+            const target = parseFloat(calcTarget)
+
+            function calcNeeded(stat: typeof selectedStat, targetAvg: number, gradeToGet: number) {
+              if (!stat || isNaN(targetAvg) || targetAvg <= 0 || targetAvg > 12) return null
+              if (parseFloat(stat.average) >= targetAvg) return 0
+              if (gradeToGet <= targetAvg) return null // impossible
+              const n = Math.ceil((targetAvg * stat.count - stat.total) / (gradeToGet - targetAvg))
+              return Math.max(n, 0)
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <Card className="glass-panel border-0 rounded-[2rem] p-6 md:p-8 space-y-6">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2"><Calculator className="size-5 text-primary" /> Калькулятор оцінок</h3>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Скільки оцінок потрібно для бажаного середнього?</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-primary/60">Предмет</label>
+                      <Select value={calcSubject} onValueChange={setCalcSubject}>
+                        <SelectTrigger className="bg-white/5 border-white/10 h-12 rounded-xl">
+                          <SelectValue placeholder="Оберіть предмет" />
+                        </SelectTrigger>
+                        <SelectContent className="glass-panel border-white/10 rounded-xl">
+                          {subjectStats.map(s => (
+                            <SelectItem key={s.name} value={s.name} className="rounded-lg focus:bg-primary/20 font-bold text-xs">
+                              {s.name} — {s.average}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black uppercase tracking-widest text-primary/60">Бажаний середній бал</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="12"
+                        step="0.1"
+                        value={calcTarget}
+                        onChange={e => setCalcTarget(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 h-12 rounded-xl px-4 text-white font-bold text-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+
+                    {selectedStat && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-1">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Поточний середній</p>
+                        <p className="text-3xl font-black italic text-primary">{selectedStat.average}</p>
+                        <p className="text-xs text-muted-foreground">{selectedStat.count} оцінок, сума {selectedStat.total}</p>
+                      </motion.div>
+                    )}
+                  </div>
+                </Card>
+
+                <div className="space-y-4">
+                  {selectedStat && !isNaN(target) && target > 0 && target <= 12 ? (
+                    parseFloat(selectedStat.average) >= target ? (
+                      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                        <Card className="glass-panel border-0 rounded-[2rem] p-6 md:p-8 text-center space-y-4">
+                          <div className="size-16 rounded-2xl bg-green-500/20 flex items-center justify-center mx-auto">
+                            <Sparkles className="size-8 text-green-500" />
+                          </div>
+                          <h4 className="text-xl font-bold text-green-500">Ціль вже досягнута!</h4>
+                          <p className="text-muted-foreground text-sm">Ваш поточний середній <span className="text-white font-bold">{selectedStat.average}</span> вже {"\u2265"} {target.toFixed(1)}</p>
+                        </Card>
+                      </motion.div>
+                    ) : (
+                      [12, 11, 10].map(grade => {
+                        const needed = calcNeeded(selectedStat, target, grade)
+                        return (
+                          <motion.div key={grade} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: (12 - grade) * 0.1 }}>
+                            <Card className="glass-panel border-0 rounded-[2rem] p-5 md:p-6 flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className={cn(
+                                  "size-12 md:size-14 rounded-2xl flex items-center justify-center text-2xl font-black italic shrink-0",
+                                  grade === 12 ? "bg-green-500/20 text-green-500" : grade === 11 ? "bg-blue-500/20 text-blue-500" : "bg-primary/20 text-primary"
+                                )}>
+                                  {grade}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-white text-base">Ставити по {grade}</p>
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Для середнього {target.toFixed(1)}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                {needed !== null ? (
+                                  <>
+                                    <p className="text-2xl md:text-3xl font-black italic text-white">{needed}</p>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{needed === 1 ? 'оцінка' : needed < 5 ? 'оцінки' : 'оцінок'}</p>
+                                  </>
+                                ) : (
+                                  <p className="text-xs font-bold text-destructive/80">Неможливо</p>
+                                )}
+                              </div>
+                            </Card>
+                          </motion.div>
+                        )
+                      })
+                    )
+                  ) : (
+                    <Card className="glass-panel border-0 rounded-[2rem] p-8 md:p-12 text-center space-y-4">
+                      <Target className="size-10 text-muted-foreground opacity-20 mx-auto" />
+                      <p className="text-muted-foreground text-lg font-medium italic">Оберіть предмет та бажаний середній бал</p>
+                    </Card>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
         </TabsContent>
       </Tabs>
     </div>

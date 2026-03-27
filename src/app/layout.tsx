@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from "@/firebase/client-provider";
 import { MobileNav } from "@/components/mobile-nav";
+import { NotificationBell } from "@/components/notification-bell";
 import { Zap, User, Settings2, LogOut, Ban } from "lucide-react";
 import { useUser, useDoc, useFirestore, useAuth } from "@/firebase";
 import { doc } from "firebase/firestore";
@@ -51,9 +52,11 @@ function MobileHeader() {
         </div>
       </div>
       
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Avatar className="size-10 border border-primary/20 shrink-0 cursor-pointer">
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Avatar className="size-10 border border-primary/20 shrink-0 cursor-pointer">
             <AvatarImage src={profile?.photoURL} className="object-cover" />
             <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs">{user?.displayName?.[0]}</AvatarFallback>
           </Avatar>
@@ -74,7 +77,8 @@ function MobileHeader() {
             <LogOut className="size-4 mr-2" /> Вийти
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+        </DropdownMenu>
+      </div>
     </header>
   );
 }
@@ -137,6 +141,11 @@ export default function RootLayout({
     <html lang="uk" className="dark scrollbar-none scroll-smooth">
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="theme-color" content="#6d28d9" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
