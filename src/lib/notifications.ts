@@ -1,22 +1,27 @@
-import { Firestore, collection, addDoc, serverTimestamp } from "firebase/firestore"
+import {
+  Firestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
-export type NotificationType = "grade" | "message" | "system"
+export type NotificationType = "grade" | "message" | "system";
 
 export interface NotificationData {
-  type: NotificationType
-  title: string
-  body: string
-  link: string
+  type: NotificationType;
+  title: string;
+  body: string;
+  link: string;
 }
 
 export async function createNotification(
   db: Firestore,
   userId: string,
-  data: NotificationData
+  data: NotificationData,
 ) {
   return addDoc(collection(db, "users", userId, "notifications"), {
     ...data,
     isRead: false,
     createdAt: serverTimestamp(),
-  })
+  });
 }

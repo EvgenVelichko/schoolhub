@@ -17,7 +17,9 @@ const firebaseConfigFromFallback = {
   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: "G-20QGTRWKF1",
 } as const;
 
-function readFirebaseEnv(name: keyof typeof firebaseConfigFromFallback): string {
+function readFirebaseEnv(
+  name: keyof typeof firebaseConfigFromFallback,
+): string {
   const value = process.env[name];
   if (value && value.trim().length > 0) {
     return value;
@@ -38,7 +40,7 @@ if (missingEnvVars.length > 0) {
       "",
       "Create a .env.local file in the project root and copy values from your Firebase project settings.",
       "You can start from .env.example.",
-    ].join("\n")
+    ].join("\n"),
   );
 }
 
@@ -47,7 +49,9 @@ export const firebaseConfig = {
   authDomain: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
   projectId: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_PROJECT_ID"),
   storageBucket: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"),
-  messagingSenderId: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"),
+  messagingSenderId: readFirebaseEnv(
+    "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
+  ),
   appId: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_APP_ID"),
   measurementId: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID"),
 };

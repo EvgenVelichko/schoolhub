@@ -27,7 +27,10 @@
       "Bash(read f:*)",
       "Bash(cat:*)",
       "Bash(npm install:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npx firebase:*)",
+      "Bash(npx firebase-tools:*)"
     ]
   }
 }

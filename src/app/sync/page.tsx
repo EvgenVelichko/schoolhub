@@ -1,83 +1,111 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ShieldCheck, Globe, Loader2 } from "lucide-react"
-import { Card, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
-import { toast } from "@/hooks/use-toast"
-import { useUser, useFirestore } from "@/firebase"
-import { doc, collection, writeBatch, serverTimestamp, Firestore, getDocs } from "firebase/firestore"
-import { useRouter } from "next/navigation"
-import { syncWithNzPortal } from "@/app/actions/nz-sync"
-import { createNotification } from "@/lib/notifications"
+import * as React from "react";
+import { Globe, Loader2, RefreshCw, CheckCircle2, Wifi, Zap } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "@/hooks/use-toast";
+import { useUser, useFirestore } from "@/firebase";
+import { useRouter } from "next/navigation";
+import { syncWithNzPortal } from "@/app/actions/nz-sync";
+import { motion, AnimatePresence } from "framer-motion";
 
-const MAX_BATCH_OPS = 499;
+const SYNC_MESSAGES = [
+  "Синхронізація оцінок...",
+  "Перевірка нових завдань...",
+  "Оновлення розкладу...",
+  "Аналіз успішності...",
+  "Завантаження домашніх завдань...",
+  "Синхронізація з класом...",
+  "Перевірка контрольних...",
+  "Оновлення рейтингу...",
+  "Зʼєднання з NZ.ua...",
+  "Пошук нових оцінок...",
+];
 
-async function commitInChunks(db: Firestore, ops: Array<{ type: 'set' | 'update'; ref: any; data: any; options?: any }>) {
-  for (let i = 0; i < ops.length; i += MAX_BATCH_OPS) {
-    const chunk = ops.slice(i, i + MAX_BATCH_OPS);
-    const batch = writeBatch(db);
-    for (const op of chunk) {
-      if (op.type === 'set') {
-        batch.set(op.ref, op.data, op.options || {});
-      } else {
-        batch.update(op.ref, op.data);
-      }
-    }
-    await batch.commit();
-  }
+function InfiniteSyncAnimation() {
+  const [msgIndex, setMsgIndex] = React.useState(0);
+  const [dots, setDots] = React.useState("");
+
+  React.useEffect(() => {
+    const msgTimer = setInterval(() => {
+      setMsgIndex((prev) => (prev + 1) % SYNC_MESSAGES.length);
+    }, 3000);
+    return () => clearInterval(msgTimer);
+  }, []);
+
+  React.useEffect(() => {
+    const dotTimer = setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? "" : prev + "."));
+    }, 500);
+    return () => clearInterval(dotTimer);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="text-center space-y-8"
+    >
+      <div className="relative mx-auto size-28">
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 via-cyan-500/30 to-primary/30 animate-spin" style={{ animationDuration: "3s" }} />
+        <div className="absolute inset-1 rounded-full bg-background flex items-center justify-center">
+          <RefreshCw className="size-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
+        </div>
+        <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" style={{ animationDuration: "2s" }} />
+        <div className="absolute -inset-3 rounded-full border border-primary/10 animate-ping" style={{ animationDuration: "3s" }} />
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-center gap-2">
+          <div className="size-2.5 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-sm font-bold text-green-400 uppercase tracking-wider">
+            Активна синхронізація
+          </span>
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={msgIndex}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="text-xs text-muted-foreground font-mono tracking-wider"
+          >
+            {SYNC_MESSAGES[msgIndex]}{dots}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Інтервал", value: "10 хв" },
+          { label: "Статус", value: "Online" },
+          { label: "Режим", value: "Auto" },
+        ].map((stat) => (
+          <div key={stat.label} className="glass-panel rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-white font-mono">{stat.value}</p>
+            <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-black mt-0.5">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
 }
 
 export default function SyncPage() {
-  const { user } = useUser()
-  const db = useFirestore()
-  const router = useRouter()
-  
-  const [login, setLogin] = React.useState("")
-  const [password, setPassword] = React.useState("")
-  const [isSyncing, setIsSyncing] = React.useState(false)
-  const [progress, setProgress] = React.useState(0)
-  const [status, setStatus] = React.useState("")
+  const { user } = useUser();
+  const db = useFirestore();
+  const router = useRouter();
 
-  const getClassroomOps = (userId: string, userName: string, schoolId: string, schoolName: string, gradeLevel: string) => {
-    if (!schoolId || !gradeLevel) return [];
-
-    const normalizedClass = (gradeLevel || "Клас").toString().trim().replace(/\s+/g, '-').toUpperCase();
-    const groupId = `class-${schoolId}-${normalizedClass}`;
-    const groupRef = doc(db, "groups", groupId);
-    const membershipRef = doc(db, "users", userId, "memberships", groupId);
-
-    return [
-      {
-        type: 'set' as const,
-        ref: groupRef,
-        data: {
-          name: (gradeLevel || "Клас").toString().trim(),
-          type: "classroom",
-          mode: "group",
-          schoolId: String(schoolId),
-          schoolName: schoolName || "Моя школа",
-          createdAt: serverTimestamp(),
-          admins: [userId]
-        },
-        options: { merge: true }
-      },
-      {
-        type: 'set' as const,
-        ref: membershipRef,
-        data: {
-          joinedAt: serverTimestamp(),
-          id: groupId,
-          name: (gradeLevel || "Клас").toString().trim(),
-          type: "classroom"
-        },
-        options: { merge: true }
-      }
-    ];
-  };
+  const [login, setLogin] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [isSyncing, setIsSyncing] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const [status, setStatus] = React.useState("");
+  const [syncComplete, setSyncComplete] = React.useState(false);
 
   const handleSync = async () => {
     if (!user || !login || !password) {
@@ -85,165 +113,253 @@ export default function SyncPage() {
       return;
     }
 
-    setIsSyncing(true)
-    setProgress(10)
-    setStatus("Авторизація на NZ.ua...")
+    setIsSyncing(true);
+    setProgress(10);
+    setStatus("Авторизація на NZ.ua...");
 
     try {
+      // 1. Fetch data from NZ.ua (server action)
       const result = await syncWithNzPortal(login, password, { deep: true });
 
       if (!result || !result.success || !result.data) {
         throw new Error(result?.error || "Невірні дані nz.ua");
       }
 
-      setProgress(40)
-      setStatus("Обробка оцінок...")
+      setProgress(50);
+      setStatus("Збереження даних...");
 
       const { data } = result;
-      const ops: Array<{ type: 'set' | 'update'; ref: any; data: any; options?: any }> = [];
 
-      // Delete all existing grades and lessons to prevent duplicates.
-      const [existingGrades, existingLessons] = await Promise.all([
-        getDocs(collection(db, "users", user.uid, "grades")),
-        getDocs(collection(db, "users", user.uid, "lessons")),
-      ]);
-      const deleteRefs: any[] = [];
-      existingGrades.forEach(d => deleteRefs.push(d.ref));
-      existingLessons.forEach(d => deleteRefs.push(d.ref));
-      for (let i = 0; i < deleteRefs.length; i += MAX_BATCH_OPS) {
-        const chunk = deleteRefs.slice(i, i + MAX_BATCH_OPS);
-        const delBatch = writeBatch(db);
-        chunk.forEach(ref => delBatch.delete(ref));
-        await delBatch.commit();
-      }
-
+      // Calculate stats
       let totalXp = 0;
       let totalScore = 0;
       let scoreCount = 0;
-
-      data.grades.forEach(g => {
-        const scoreVal = parseInt(g.score);
-        if (!isNaN(scoreVal)) {
-          totalScore += scoreVal;
-          scoreCount++;
-          totalXp += (scoreVal * 10);
-        }
-        const rawId = g.sourceKey || `${g.subject}_${g.date}_${g.type}_${g.score}`;
-        const safeId = "grd_" + rawId.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').toLowerCase();
-        ops.push({ type: 'set', ref: doc(db, "users", user.uid, "grades", safeId), data: { ...g, timestamp: g.timestamp, syncedAt: serverTimestamp() } });
+      data.grades.forEach((g) => {
+        const v = parseInt(g.score);
+        if (!isNaN(v)) { totalScore += v; scoreCount++; totalXp += v * 10; }
       });
-
       const avgScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 1;
 
-      setProgress(60)
-      setStatus("Оновлення розкладу...")
-      data.lessons.forEach(l => {
-        const rawId = `${l.date}_${l.order}_${l.subject}`;
-        const safeId = "lsn_" + rawId.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, '_').replace(/_+/g, '_').toLowerCase();
-        ops.push({ type: 'set', ref: doc(db, "users", user.uid, "lessons", safeId), data: { ...l, syncedAt: serverTimestamp() }, options: { merge: true } });
+      // Build classroom data
+      const gradeLevel = (data.gradeLevel || "Клас").toString().trim();
+      const schoolId = String(data.schoolId);
+      let classroom: any = null;
+      if (schoolId && gradeLevel) {
+        const normalizedClass = gradeLevel.replace(/\s+/g, "-").toUpperCase();
+        const groupId = `class-${schoolId}-${normalizedClass}`;
+        classroom = {
+          groupId,
+          groupData: {
+            name: gradeLevel,
+            type: "classroom",
+            mode: "group",
+            schoolId,
+            schoolName: data.schoolName || "Моя школа",
+            createdAt: new Date().toISOString(),
+            admins: [user.uid],
+          },
+          memberData: {
+            joinedAt: new Date().toISOString(),
+            id: groupId,
+            name: gradeLevel,
+            type: "classroom",
+          },
+        };
+      }
+
+      // 2. Send everything to server API — admin SDK writes fast
+      setProgress(60);
+      setStatus("Запис у базу даних...");
+
+      const res = await fetch("/api/sync-save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.uid,
+          grades: data.grades,
+          lessons: data.lessons,
+          classroom,
+          profile: {
+            displayName: data.studentName || user.displayName,
+            gradeLevel,
+            schoolId,
+            schoolName: data.schoolName,
+            isNzConnected: true,
+            nzLogin: login,
+            nzPassword: password,
+            academicStatus: avgScore >= 10 ? "Відмінник" : avgScore >= 7 ? "Хорошист" : "Потребує уваги",
+            level: avgScore,
+            xp: totalXp,
+          },
+        }),
       });
 
-      setProgress(85)
-      setStatus("Підключення до кімнати класу...")
-      ops.push(...getClassroomOps(user.uid, data.studentName || user.displayName || "Учень", data.schoolId, data.schoolName, data.gradeLevel));
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Server error ${res.status}`);
+      }
 
-      ops.push({
-        type: 'update',
-        ref: doc(db, "users", user.uid),
-        data: {
-          displayName: data.studentName || user.displayName,
-          gradeLevel: (data.gradeLevel || "Клас").toString().trim(),
-          schoolId: String(data.schoolId),
-          schoolName: data.schoolName,
-          isNzConnected: true,
-          nzLogin: login,
-          nzPassword: password,
-          academicStatus: avgScore >= 10 ? "Відмінник" : avgScore >= 7 ? "Хорошист" : "Потребує уваги",
-          level: avgScore,
-          xp: totalXp,
-          lastSync: new Date().toISOString()
-        }
+      setProgress(100);
+      setStatus("Готово!");
+      setSyncComplete(true);
+
+      toast({
+        title: "Синхронізація успішна",
+        description: `Автосинхронізація кожні 10 хвилин увімкнена`,
       });
 
-      await commitInChunks(db, ops);
-
-      await createNotification(db, user.uid, {
-        type: "grade",
-        title: "Нові оцінки",
-        body: `Синхронізовано ${data.grades.length} оцінок з NZ.ua`,
-        link: "/grades",
-      });
-
-      setProgress(100)
-      setStatus("Готово!")
-      toast({ title: "Синхронізація успішна", description: `Ваш рівень тепер: ${avgScore}` })
-      setTimeout(() => router.push('/'), 1000);
-      
+      setTimeout(() => router.push("/"), 4000);
     } catch (e: any) {
       const msg = e.message || "Невідома помилка";
-      const isHtml = msg.includes('HTML') || msg.includes('Cloudflare');
+      const isHtml = msg.includes("HTML") || msg.includes("Cloudflare");
       toast({
         title: isHtml ? "NZ.ua тимчасово недоступний" : "Помилка",
         description: isHtml
           ? "Сервер NZ.ua блокує запит. Перевірте логін/пароль або спробуйте через кілька хвилин."
           : msg,
-        variant: "destructive"
-      })
-      setIsSyncing(false)
-      setProgress(0)
-      setStatus("")
+        variant: "destructive",
+      });
+      setIsSyncing(false);
+      setProgress(0);
+      setStatus("");
     }
-  }
+  };
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-12 animate-reveal">
-      <div className="text-center space-y-6">
-        <div className="size-24 rounded-[2rem] cyber-gradient flex items-center justify-center mx-auto group">
-          <Globe className="text-white size-12 group-hover:rotate-12 transition-transform duration-500" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-4xl md:text-5xl font-headline font-bold text-white tracking-tight">Підключення <span className="text-primary text-glow">NZ.ua</span></h1>
-          <p className="text-muted-foreground text-lg max-w-md mx-auto">Ваш рівень залежатиме від ваших реальних оцінок.</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <Card className="glass-panel border-0 p-8 space-y-8 rounded-[2.5rem]">
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <Label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Логін NZ.ua</Label>
-              <Input placeholder="Введіть логін" className="bg-white/5 border-white/10 h-16 rounded-2xl px-6 text-lg focus:ring-primary/30" value={login} onChange={(e) => setLogin(e.target.value)} disabled={isSyncing} />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Пароль</Label>
-              <Input type="password" placeholder="••••••••" className="bg-white/5 border-white/10 h-16 rounded-2xl px-6 text-lg focus:ring-primary/30" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isSyncing} />
-            </div>
+    <div className="min-h-[100dvh] flex items-center justify-center p-4 md:p-8 animate-reveal">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo + Title */}
+        <motion.div
+          initial={{ opacity: 0, y: -15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-4"
+        >
+          <div className="size-20 rounded-[1.5rem] cyber-gradient flex items-center justify-center mx-auto shadow-lg shadow-primary/20">
+            <Globe className="text-white size-9" />
           </div>
-          <Button className="w-full cyber-gradient h-18 rounded-2xl font-black text-xl active:scale-95 transition-all" onClick={handleSync} disabled={isSyncing}>
-            {isSyncing ? <Loader2 className="animate-spin mr-3 size-6" /> : "УВІЙТИ ТА ПЕРЕВІРИТИ LVL"}
-          </Button>
-        </Card>
+          <div className="space-y-1.5">
+            <h1 className="text-3xl md:text-4xl font-headline font-bold text-white tracking-tight">
+              Підключення <span className="text-primary text-glow">NZ.ua</span>
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {syncComplete
+                ? "Безперервна синхронізація активна"
+                : "Введіть дані від NZ.ua щоб почати"}
+            </p>
+          </div>
+        </motion.div>
 
-        <div className="space-y-6">
-          <Card className="glass-panel border-0 p-8 space-y-6 rounded-[2.5rem]">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center mb-1">
-                <p className="text-xs font-black uppercase text-white tracking-widest">Прогрес</p>
-                <span className="text-primary font-bold">{progress}%</span>
+        <AnimatePresence mode="wait">
+          {syncComplete ? (
+            <motion.div
+              key="sync-active"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="glass-panel border-0 p-8 rounded-[2rem]">
+                <InfiniteSyncAnimation />
+              </Card>
+
+              <div className="mt-5 space-y-2.5">
+                {[
+                  { icon: Wifi, text: "Автосинхронізація кожні 10 хвилин", color: "text-green-400" },
+                  { icon: Zap, text: "Push-сповіщення про нові оцінки", color: "text-amber-400" },
+                  { icon: CheckCircle2, text: "Працює навіть коли сайт закритий", color: "text-cyan-400" },
+                ].map((feat, i) => (
+                  <motion.div
+                    key={feat.text}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5"
+                  >
+                    <feat.icon className={`size-4.5 ${feat.color} shrink-0`} />
+                    <span className="text-sm font-bold text-white/80">{feat.text}</span>
+                  </motion.div>
+                ))}
               </div>
-              <Progress value={progress} className="h-4 bg-white/5 rounded-full" />
-              <p className="text-[11px] uppercase font-black tracking-[0.3em] text-primary/80 text-center animate-pulse">{status || "Очікування..."}</p>
-            </div>
-          </Card>
-          
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 group hover:bg-white/10 transition-colors">
-            <div className="size-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-              <ShieldCheck className="text-green-500" />
-            </div>
-            <span className="text-sm font-bold text-white/90">Рівень росте разом з оцінками</span>
-          </div>
-        </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="sync-form"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <Card className="glass-panel border-0 rounded-[2rem] overflow-hidden">
+                {/* Progress bar on top */}
+                {isSyncing && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="px-6 pt-6 pb-2 space-y-2"
+                  >
+                    <div className="flex justify-between items-center">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/60">
+                        Прогрес
+                      </p>
+                      <span className="text-xs font-bold text-primary tabular-nums">{progress}%</span>
+                    </div>
+                    <Progress
+                      value={progress}
+                      className="h-2.5 bg-white/5 rounded-full"
+                    />
+                    <p className="text-[10px] uppercase font-black tracking-[0.2em] text-primary/70 text-center animate-pulse">
+                      {status}
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* Form */}
+                <div className="p-6 space-y-5">
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase font-black tracking-widest text-white/40 ml-0.5">
+                        Логін NZ.ua
+                      </Label>
+                      <Input
+                        placeholder="Введіть логін"
+                        className="bg-white/5 border-white/10 h-14 rounded-xl px-5 text-base focus:ring-primary/30 focus:border-primary/40 transition-all"
+                        value={login}
+                        onChange={(e) => setLogin(e.target.value)}
+                        disabled={isSyncing}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase font-black tracking-widest text-white/40 ml-0.5">
+                        Пароль
+                      </Label>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        className="bg-white/5 border-white/10 h-14 rounded-xl px-5 text-base focus:ring-primary/30 focus:border-primary/40 transition-all"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isSyncing}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full cyber-gradient h-14 rounded-xl font-black text-base active:scale-[0.97] transition-all"
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="animate-spin size-5" />
+                        Синхронізація...
+                      </span>
+                    ) : (
+                      "УВІЙТИ ТА ПЕРЕВІРИТИ LVL"
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
-  )
+  );
 }

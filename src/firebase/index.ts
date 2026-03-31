@@ -1,8 +1,7 @@
-
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { firebaseConfig } from './config';
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { firebaseConfig } from "./config";
 
 export function initializeFirebase() {
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
@@ -11,7 +10,7 @@ export function initializeFirebase() {
   return { app, db, auth };
 }
 
-export * from './provider';
-export * from './auth/use-user';
-export * from './firestore/use-collection';
-export * from './firestore/use-doc';
+export * from "./provider";
+export * from "./auth/use-user";
+export * from "./firestore/use-collection";
+export * from "./firestore/use-doc";
