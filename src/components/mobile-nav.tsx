@@ -1,48 +1,68 @@
+"use client";
 
-"use client"
-
-import * as React from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { LayoutDashboard, Calendar, TrendingUp, Library, User } from "lucide-react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Home, MessageCircle, Bot, BookOpen, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Головна", href: "/" },
-  { icon: Calendar, label: "Розклад", href: "/schedule" },
-  { icon: TrendingUp, label: "Оцінки", href: "/grades" },
-  { icon: Library, label: "Хаб", href: "/hub" },
+  { icon: Home, label: "Головна", href: "/" },
+  { icon: MessageCircle, label: "Чати", href: "/messages" },
+  { icon: Bot, label: "ШІ", href: "/ai-chat" },
+  { icon: BookOpen, label: "ГДЗ", href: "/materials" },
   { icon: User, label: "Профіль", href: "/profile" },
-]
+];
 
 export function MobileNav() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
-  if (pathname === '/auth' || pathname?.startsWith('/chat')) return null
+  if (pathname === "/auth" || pathname === "/sync" || pathname?.startsWith("/chat/")) return null;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-2xl border-t border-white/5 px-1 sm:px-2 flex items-start justify-around z-[100] safe-bottom pt-2 pb-3">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-background/90 backdrop-blur-2xl border-t border-white/[0.06] px-2 flex items-center justify-around z-[100] safe-bottom pt-1.5 pb-2.5">
       {navItems.map((item) => {
-        const isActive = pathname === item.href
+        const isActive =
+          pathname === item.href ||
+          (item.href !== "/" && pathname?.startsWith(item.href));
         return (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 transition-all duration-300 w-full py-1 touch-target",
-              isActive ? "text-primary" : "text-muted-foreground opacity-60"
+              "flex flex-col items-center justify-center gap-0.5 transition-all duration-300 w-full py-1 touch-target relative",
+              isActive ? "text-primary" : "text-muted-foreground/50",
             )}
           >
-            <div className={cn(
-              "size-9 rounded-xl flex items-center justify-center transition-all",
-              isActive ? "bg-primary/20" : "bg-transparent"
-            )}>
-              <item.icon className={cn("size-5", isActive ? "animate-float" : "")} />
+            <div
+              className={cn(
+                "size-10 rounded-2xl flex items-center justify-center transition-all duration-300 relative",
+                isActive ? "bg-primary/15 scale-105" : "bg-transparent",
+              )}
+            >
+              <item.icon
+                className={cn(
+                  "size-[22px] transition-all duration-300",
+                  isActive &&
+                    "drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]",
+                )}
+                strokeWidth={isActive ? 2.5 : 2}
+              />
+              {isActive && (
+                <div className="absolute -bottom-1 w-4 h-[3px] rounded-full bg-primary" />
+              )}
             </div>
-            <span className="text-[8px] font-black uppercase tracking-widest text-center leading-none">{item.label}</span>
+            <span
+              className={cn(
+                "text-[9px] font-bold uppercase tracking-wider text-center leading-none transition-all",
+                isActive ? "opacity-100" : "opacity-50",
+              )}
+            >
+              {item.label}
+            </span>
           </Link>
-        )
+        );
       })}
     </nav>
-  )
+  );
 }

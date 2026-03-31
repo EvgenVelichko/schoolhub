@@ -1,7 +1,6 @@
+"use client";
 
-"use client"
-
-import * as React from "react"
+import * as React from "react";
 import {
   Clock,
   Loader2,
@@ -29,62 +28,69 @@ import {
   Pencil,
   Check,
   X,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { useUser, useFirestore, useCollection, useDoc } from "@/firebase"
-import { collection, query, orderBy, doc, setDoc, serverTimestamp } from "firebase/firestore"
-import { toast } from "@/hooks/use-toast"
-import { format, startOfWeek, addDays, isWeekend, addWeeks } from "date-fns"
-import { uk } from "date-fns/locale"
-import { cn } from "@/lib/utils"
-import { isFriday, buildFridayLessons } from "@/lib/friday-schedule"
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useUser, useFirestore, useCollection, useDoc } from "@/firebase";
+import {
+  collection,
+  query,
+  orderBy,
+  doc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { toast } from "@/hooks/use-toast";
+import { format, startOfWeek, addDays, isWeekend, addWeeks } from "date-fns";
+import { uk } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { isFriday, buildFridayLessons } from "@/lib/friday-schedule";
 
 interface Lesson {
-  subject: string
-  time: string
-  timeEnd: string
-  room: string
-  teacher: string
-  homework: string
-  date: string
-  order: number
+  subject: string;
+  time: string;
+  timeEnd: string;
+  room: string;
+  teacher: string;
+  homework: string;
+  date: string;
+  order: number;
 }
 
-const DAY_NAMES = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця"]
-const DAY_SHORT = ["ПН", "ВТ", "СР", "ЧТ", "ПТ"]
+const DAY_NAMES = ["Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця"];
+const DAY_SHORT = ["ПН", "ВТ", "СР", "ЧТ", "ПТ"];
 
 const SUBJECT_ICONS: Record<string, React.ReactNode> = {
-  "Математика": <Calculator className="size-5 text-blue-400" />,
-  "Алгебра": <Calculator className="size-5 text-blue-400" />,
-  "Геометрія": <Calculator className="size-5 text-cyan-400" />,
+  Математика: <Calculator className="size-5 text-blue-400" />,
+  Алгебра: <Calculator className="size-5 text-blue-400" />,
+  Геометрія: <Calculator className="size-5 text-cyan-400" />,
   "Українська мова": <Languages className="size-5 text-orange-400" />,
   "Українська література": <BookOpen className="size-5 text-orange-300" />,
   "Зарубіжна література": <BookOpen className="size-5 text-pink-400" />,
   "Англійська мова": <Languages className="size-5 text-indigo-400" />,
   "Німецька мова": <Languages className="size-5 text-yellow-400" />,
   "Французька мова": <Languages className="size-5 text-blue-300" />,
-  "Історія": <History className="size-5 text-yellow-500" />,
+  Історія: <History className="size-5 text-yellow-500" />,
   "Всесвітня історія": <History className="size-5 text-yellow-600" />,
   "Історія України": <History className="size-5 text-yellow-400" />,
-  "Фізика": <Zap className="size-5 text-purple-400" />,
-  "Хімія": <Beaker className="size-5 text-green-400" />,
-  "Біологія": <Leaf className="size-5 text-green-500" />,
-  "Географія": <Globe className="size-5 text-emerald-400" />,
-  "Інформатика": <Cpu className="size-5 text-slate-400" />,
-  "Фізкультура": <Dumbbell className="size-5 text-red-400" />,
+  Фізика: <Zap className="size-5 text-purple-400" />,
+  Хімія: <Beaker className="size-5 text-green-400" />,
+  Біологія: <Leaf className="size-5 text-green-500" />,
+  Географія: <Globe className="size-5 text-emerald-400" />,
+  Інформатика: <Cpu className="size-5 text-slate-400" />,
+  Фізкультура: <Dumbbell className="size-5 text-red-400" />,
   "Основи здоров'я": <Heart className="size-5 text-rose-400" />,
-  "Мистецтво": <Palette className="size-5 text-pink-400" />,
-  "Музика": <Music className="size-5 text-indigo-400" />,
+  Мистецтво: <Palette className="size-5 text-pink-400" />,
+  Музика: <Music className="size-5 text-indigo-400" />,
   "Трудове навчання": <Hammer className="size-5 text-amber-600" />,
-  "Default": <Sparkles className="size-5 text-primary" />,
-}
+  Default: <Sparkles className="size-5 text-primary" />,
+};
 
-const URL_RE = /(https?:\/\/[^\s,;)>\]]+)/g
+const URL_RE = /(https?:\/\/[^\s,;)>\]]+)/g;
 
 function Linkify({ text }: { text: string }) {
-  const parts = text.split(URL_RE)
+  const parts = text.split(URL_RE);
   return (
     <>
       {parts.map((part, i) =>
@@ -97,79 +103,105 @@ function Linkify({ text }: { text: string }) {
             className="inline-flex items-center gap-1 text-primary hover:text-primary/80 underline underline-offset-2 decoration-primary/40 hover:decoration-primary/80 break-all transition-colors font-medium not-italic"
           >
             {(() => {
-              try { return new URL(part).hostname.replace('www.', '') } catch { return 'Посилання' }
+              try {
+                return new URL(part).hostname.replace("www.", "");
+              } catch {
+                return "Посилання";
+              }
             })()}
             <ExternalLink className="size-2.5 shrink-0 inline" />
           </a>
         ) : (
           <React.Fragment key={i}>{part}</React.Fragment>
-        )
+        ),
       )}
     </>
-  )
+  );
 }
 
 function getWeekStart(date: Date): Date {
   if (isWeekend(date)) {
-    return startOfWeek(addWeeks(date, 1), { weekStartsOn: 1 })
+    return startOfWeek(addWeeks(date, 1), { weekStartsOn: 1 });
   }
-  return startOfWeek(date, { weekStartsOn: 1 })
+  return startOfWeek(date, { weekStartsOn: 1 });
 }
 
 function hasValidTime(lesson: Lesson) {
-  return lesson.time && lesson.time !== '--:--'
+  return lesson.time && lesson.time !== "--:--";
 }
 
 export default function SchedulePage() {
-  const { user, loading: userLoading } = useUser()
-  const db = useFirestore()
+  const { user, loading: userLoading } = useUser();
+  const db = useFirestore();
 
-  const userDocRef = React.useMemo(() => (user ? doc(db, "users", user.uid) : null), [db, user])
-  const { data: profile } = useDoc(userDocRef)
-  const canEditHw = profile?.role === 'tester' || profile?.role === 'admin' || profile?.role === 'owner'
+  const userDocRef = React.useMemo(
+    () => (user ? doc(db, "users", user.uid) : null),
+    [db, user],
+  );
+  const { data: profile } = useDoc(userDocRef);
+  const canEditHw =
+    profile?.role === "tester" ||
+    profile?.role === "admin" ||
+    profile?.role === "owner";
 
-  const today = new Date()
-  const [weekOffset, setWeekOffset] = React.useState(0)
-  const [selectedDay, setSelectedDay] = React.useState<number | null>(null)
-  const [editingHw, setEditingHw] = React.useState<string | null>(null) // "date_order_subject"
-  const [hwDraft, setHwDraft] = React.useState("")
-  const [savingHw, setSavingHw] = React.useState(false)
+  const today = new Date();
+  const [weekOffset, setWeekOffset] = React.useState(0);
+  const [selectedDay, setSelectedDay] = React.useState<number | null>(null);
+  const [editingHw, setEditingHw] = React.useState<string | null>(null); // "date_order_subject"
+  const [hwDraft, setHwDraft] = React.useState("");
+  const [savingHw, setSavingHw] = React.useState(false);
 
-  const baseWeekStart = React.useMemo(() => getWeekStart(today), [])
-  const currentWeekStart = React.useMemo(() => addWeeks(baseWeekStart, weekOffset), [baseWeekStart, weekOffset])
+  const baseWeekStart = React.useMemo(() => getWeekStart(today), []);
+  const currentWeekStart = React.useMemo(
+    () => addWeeks(baseWeekStart, weekOffset),
+    [baseWeekStart, weekOffset],
+  );
 
-  const lessonsQuery = React.useMemo(() => (
-    user ? query(collection(db, "users", user.uid, "lessons"), orderBy("date", "asc"), orderBy("order", "asc")) : null
-  ), [db, user])
+  const lessonsQuery = React.useMemo(
+    () =>
+      user
+        ? query(
+            collection(db, "users", user.uid, "lessons"),
+            orderBy("date", "asc"),
+            orderBy("order", "asc"),
+          )
+        : null,
+    [db, user],
+  );
 
-  const { data: allLessons, loading: lessonsLoading } = useCollection(lessonsQuery)
+  const { data: allLessons, loading: lessonsLoading } =
+    useCollection(lessonsQuery);
 
   // Global homework collection — shared across all users
-  const hwQuery = React.useMemo(() => query(collection(db, "homework"), orderBy("updatedAt", "desc")), [db])
-  const { data: globalHomework } = useCollection(hwQuery)
+  const hwQuery = React.useMemo(
+    () => query(collection(db, "homework"), orderBy("updatedAt", "desc")),
+    [db],
+  );
+  const { data: globalHomework } = useCollection(hwQuery);
 
   const hwMap = React.useMemo(() => {
-    const map = new Map<string, string>()
+    const map = new Map<string, string>();
     if (globalHomework) {
       for (const hw of globalHomework as any[]) {
-        map.set(hw.id, hw.text)
+        map.set(hw.id, hw.text);
       }
     }
-    return map
-  }, [globalHomework])
+    return map;
+  }, [globalHomework]);
 
   const getHomework = (lesson: Lesson) => {
-    const key = `${lesson.date}_${lesson.order}_${lesson.subject}`
-    return hwMap.get(key) || lesson.homework
-  }
+    const key = `${lesson.date}_${lesson.order}_${lesson.subject}`;
+    return hwMap.get(key) || lesson.homework;
+  };
 
-  const getLessonHwKey = (lesson: Lesson) => `${lesson.date}_${lesson.order}_${lesson.subject}`
+  const getLessonHwKey = (lesson: Lesson) =>
+    `${lesson.date}_${lesson.order}_${lesson.subject}`;
 
   const handleSaveHw = async (lesson: Lesson) => {
-    if (!editingHw) return
-    setSavingHw(true)
+    if (!editingHw) return;
+    setSavingHw(true);
     try {
-      const key = getLessonHwKey(lesson)
+      const key = getLessonHwKey(lesson);
       await setDoc(doc(db, "homework", key), {
         text: hwDraft,
         subject: lesson.subject,
@@ -177,71 +209,83 @@ export default function SchedulePage() {
         order: lesson.order,
         updatedBy: user?.uid,
         updatedAt: serverTimestamp(),
-      })
-      toast({ title: "Збережено", description: "Домашнє завдання оновлено для всіх" })
-      setEditingHw(null)
-      setHwDraft("")
+      });
+      toast({
+        title: "Збережено",
+        description: "Домашнє завдання оновлено для всіх",
+      });
+      setEditingHw(null);
+      setHwDraft("");
     } catch (e) {
-      console.error(e)
-      toast({ title: "Помилка", description: "Не вдалося зберегти" })
+      console.error(e);
+      toast({ title: "Помилка", description: "Не вдалося зберегти" });
     } finally {
-      setSavingHw(false)
+      setSavingHw(false);
     }
-  }
+  };
 
   const getLessonsForDay = (dayOffset: number): Lesson[] => {
-    const targetDate = addDays(currentWeekStart, dayOffset)
-    const targetDateStr = format(targetDate, 'yyyy-MM-dd')
+    const targetDate = addDays(currentWeekStart, dayOffset);
+    const targetDateStr = format(targetDate, "yyyy-MM-dd");
 
     if (isFriday(targetDateStr)) {
-      return buildFridayLessons(targetDateStr, allLessons || []) as Lesson[]
+      return buildFridayLessons(targetDateStr, allLessons || []) as Lesson[];
     }
 
-    const raw = (allLessons?.filter((lesson: any) => lesson.date === targetDateStr) || [])
-      .sort((a: any, b: any) => {
-        const orderA = a.order || 0
-        const orderB = b.order || 0
-        if (orderA && orderB) return orderA - orderB
-        if (!orderA && !orderB) return (a.time || '').localeCompare(b.time || '')
-        const timeA = a.time || ''
-        const timeB = b.time || ''
-        if (timeA && timeB) return timeA.localeCompare(timeB)
-        if (orderA) return -1
-        return 1
-      }) as Lesson[]
+    const raw = (
+      allLessons?.filter((lesson: any) => lesson.date === targetDateStr) || []
+    ).sort((a: any, b: any) => {
+      const orderA = a.order || 0;
+      const orderB = b.order || 0;
+      if (orderA && orderB) return orderA - orderB;
+      if (!orderA && !orderB) return (a.time || "").localeCompare(b.time || "");
+      const timeA = a.time || "";
+      const timeB = b.time || "";
+      if (timeA && timeB) return timeA.localeCompare(timeB);
+      if (orderA) return -1;
+      return 1;
+    }) as Lesson[];
     // Deduplicate by order+subject
-    const seen = new Set<string>()
-    return raw.filter(l => {
-      const key = `${l.order}_${l.subject}`
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-  }
+    const seen = new Set<string>();
+    return raw.filter((l) => {
+      const key = `${l.order}_${l.subject}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
 
-  const isCurrentWeek = weekOffset === 0
-  const todayDayIndex = today.getDay() - 1
+  const isCurrentWeek = weekOffset === 0;
+  const todayDayIndex = today.getDay() - 1;
 
   React.useEffect(() => {
-    if (isCurrentWeek && !isWeekend(today) && todayDayIndex >= 0 && todayDayIndex <= 4) {
-      setSelectedDay(todayDayIndex)
+    if (
+      isCurrentWeek &&
+      !isWeekend(today) &&
+      todayDayIndex >= 0 &&
+      todayDayIndex <= 4
+    ) {
+      setSelectedDay(todayDayIndex);
     } else {
-      setSelectedDay(null)
+      setSelectedDay(null);
     }
-  }, [weekOffset])
+  }, [weekOffset]);
 
   const dayLessonCounts = React.useMemo(() => {
-    return DAY_NAMES.map((_, idx) => getLessonsForDay(idx).length)
-  }, [allLessons, currentWeekStart])
+    return DAY_NAMES.map((_, idx) => getLessonsForDay(idx).length);
+  }, [allLessons, currentWeekStart]);
 
-  if (userLoading || lessonsLoading) return (
-    <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background">
-      <Loader2 className="size-12 animate-spin text-primary" />
-      <p className="text-xs font-bold tracking-widest text-primary/50 uppercase">Завантаження розкладу...</p>
-    </div>
-  )
+  if (userLoading || lessonsLoading)
+    return (
+      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background">
+        <Loader2 className="size-12 animate-spin text-primary" />
+        <p className="text-xs font-bold tracking-widest text-primary/50 uppercase">
+          Завантаження розкладу...
+        </p>
+      </div>
+    );
 
-  const activeDayIndex = selectedDay
+  const activeDayIndex = selectedDay;
 
   return (
     <div className="p-3 sm:p-4 md:p-8 max-w-4xl mx-auto space-y-5 sm:space-y-6 animate-reveal w-full pb-32">
@@ -252,7 +296,10 @@ export default function SchedulePage() {
             Розклад <span className="text-primary text-glow">уроків</span>
           </h1>
           <p className="text-muted-foreground text-xs sm:text-sm opacity-70">
-            {format(currentWeekStart, 'dd MMMM', { locale: uk })} — {format(addDays(currentWeekStart, 4), 'dd MMMM yyyy', { locale: uk })}
+            {format(currentWeekStart, "dd MMMM", { locale: uk })} —{" "}
+            {format(addDays(currentWeekStart, 4), "dd MMMM yyyy", {
+              locale: uk,
+            })}
           </p>
         </div>
 
@@ -262,7 +309,7 @@ export default function SchedulePage() {
             variant="ghost"
             size="icon"
             className="size-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 shrink-0"
-            onClick={() => setWeekOffset(w => w - 1)}
+            onClick={() => setWeekOffset((w) => w - 1)}
           >
             <ChevronLeft className="size-4 text-white" />
           </Button>
@@ -279,12 +326,15 @@ export default function SchedulePage() {
             variant="ghost"
             size="icon"
             className="size-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 shrink-0"
-            onClick={() => setWeekOffset(w => w + 1)}
+            onClick={() => setWeekOffset((w) => w + 1)}
           >
             <ChevronRight className="size-4 text-white" />
           </Button>
           {isWeekend(today) && isCurrentWeek && (
-            <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-2.5 py-0.5 rounded-lg font-black tracking-widest uppercase text-[8px] sm:text-[10px] ml-auto">
+            <Badge
+              variant="outline"
+              className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-2.5 py-0.5 rounded-lg font-black tracking-widest uppercase text-[8px] sm:text-[10px] ml-auto"
+            >
               Наступний тиждень
             </Badge>
           )}
@@ -294,10 +344,11 @@ export default function SchedulePage() {
       {/* Day selector pills */}
       <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
         {DAY_NAMES.map((_, idx) => {
-          const dayDate = addDays(currentWeekStart, idx)
-          const isToday = isCurrentWeek && !isWeekend(today) && todayDayIndex === idx
-          const isSelected = activeDayIndex === idx
-          const lessonCount = dayLessonCounts[idx]
+          const dayDate = addDays(currentWeekStart, idx);
+          const isToday =
+            isCurrentWeek && !isWeekend(today) && todayDayIndex === idx;
+          const isSelected = activeDayIndex === idx;
+          const lessonCount = dayLessonCounts[idx];
 
           return (
             <button
@@ -309,65 +360,104 @@ export default function SchedulePage() {
                   ? "bg-primary/15 border-primary/40"
                   : isToday
                     ? "bg-white/[0.06] border-primary/20"
-                    : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]"
+                    : "bg-white/[0.02] border-white/5 hover:bg-white/[0.05]",
               )}
             >
-              <span className={cn(
-                "text-[10px] sm:text-xs font-black uppercase tracking-wider",
-                isSelected ? "text-primary" : isToday ? "text-primary/70" : "text-muted-foreground"
-              )}>
+              <span
+                className={cn(
+                  "text-[10px] sm:text-xs font-black uppercase tracking-wider",
+                  isSelected
+                    ? "text-primary"
+                    : isToday
+                      ? "text-primary/70"
+                      : "text-muted-foreground",
+                )}
+              >
                 {DAY_SHORT[idx]}
               </span>
-              <span className={cn(
-                "text-lg sm:text-xl font-bold",
-                isSelected ? "text-white" : isToday ? "text-white" : "text-white/60"
-              )}>
-                {format(dayDate, 'd')}
+              <span
+                className={cn(
+                  "text-lg sm:text-xl font-bold",
+                  isSelected
+                    ? "text-white"
+                    : isToday
+                      ? "text-white"
+                      : "text-white/60",
+                )}
+              >
+                {format(dayDate, "d")}
               </span>
               {lessonCount > 0 ? (
-                <span className={cn(
-                  "text-[9px] font-bold",
-                  isSelected ? "text-primary" : isToday ? "text-primary/60" : "text-muted-foreground/40"
-                )}>
+                <span
+                  className={cn(
+                    "text-[9px] font-bold",
+                    isSelected
+                      ? "text-primary"
+                      : isToday
+                        ? "text-primary/60"
+                        : "text-muted-foreground/40",
+                  )}
+                >
                   {lessonCount}
                 </span>
               ) : (
                 <span className="text-[9px] text-muted-foreground/20">—</span>
               )}
             </button>
-          )
+          );
         })}
       </div>
 
       {/* Schedule content */}
       <div className="space-y-6 sm:space-y-8">
         {DAY_NAMES.map((dayName, idx) => {
-          const dayDate = addDays(currentWeekStart, idx)
-          const lessons = getLessonsForDay(idx)
-          const isToday = isCurrentWeek && !isWeekend(today) && todayDayIndex === idx
+          const dayDate = addDays(currentWeekStart, idx);
+          const lessons = getLessonsForDay(idx);
+          const isToday =
+            isCurrentWeek && !isWeekend(today) && todayDayIndex === idx;
 
-          if (activeDayIndex !== null && activeDayIndex !== idx) return null
+          if (activeDayIndex !== null && activeDayIndex !== idx) return null;
 
           return (
             <div
               key={idx}
               className="animate-in fade-in slide-in-from-bottom-4 duration-500"
-              style={{ animationDelay: activeDayIndex !== null ? '0ms' : `${idx * 60}ms` }}
+              style={{
+                animationDelay:
+                  activeDayIndex !== null ? "0ms" : `${idx * 60}ms`,
+              }}
             >
               {/* Day header */}
               <div className="flex items-center gap-3 mb-3">
-                <div className={cn(
-                  "flex items-center gap-2.5 px-3.5 py-2 rounded-xl",
-                  isToday
-                    ? "bg-primary/15 border border-primary/30"
-                    : "bg-white/5 border border-white/5"
-                )}>
-                  <CalendarDays className={cn("size-4", isToday ? "text-primary" : "text-muted-foreground")} />
-                  <span className={cn("text-sm sm:text-base font-bold", isToday ? "text-primary" : "text-white")}>
+                <div
+                  className={cn(
+                    "flex items-center gap-2.5 px-3.5 py-2 rounded-xl",
+                    isToday
+                      ? "bg-primary/15 border border-primary/30"
+                      : "bg-white/5 border border-white/5",
+                  )}
+                >
+                  <CalendarDays
+                    className={cn(
+                      "size-4",
+                      isToday ? "text-primary" : "text-muted-foreground",
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "text-sm sm:text-base font-bold",
+                      isToday ? "text-primary" : "text-white",
+                    )}
+                  >
                     {dayName}
                   </span>
-                  <span className={cn("text-[10px] sm:text-xs font-medium", isToday ? "text-primary/70" : "text-muted-foreground")}>
-                    {format(dayDate, 'dd.MM')}
+                  <span
+                    className={cn(
+                      "text-[10px] sm:text-xs font-medium",
+                      isToday ? "text-primary/70" : "text-muted-foreground",
+                    )}
+                  >
+                    {format(dayDate, "dd.MM")}
                   </span>
                 </div>
                 {isToday && (
@@ -377,7 +467,12 @@ export default function SchedulePage() {
                 )}
                 {lessons.length > 0 && (
                   <span className="text-[10px] text-muted-foreground/50 font-medium ml-auto">
-                    {lessons.length} {lessons.length === 1 ? 'урок' : lessons.length < 5 ? 'уроки' : 'уроків'}
+                    {lessons.length}{" "}
+                    {lessons.length === 1
+                      ? "урок"
+                      : lessons.length < 5
+                        ? "уроки"
+                        : "уроків"}
                   </span>
                 )}
               </div>
@@ -386,9 +481,10 @@ export default function SchedulePage() {
               {lessons.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {lessons.map((lesson, lIdx) => {
-                    const showTime = hasValidTime(lesson)
-                    const hasOrder = lesson.order > 0
-                    const icon = SUBJECT_ICONS[lesson.subject] || SUBJECT_ICONS["Default"]
+                    const showTime = hasValidTime(lesson);
+                    const hasOrder = lesson.order > 0;
+                    const icon =
+                      SUBJECT_ICONS[lesson.subject] || SUBJECT_ICONS["Default"];
 
                     return (
                       <Card
@@ -399,7 +495,9 @@ export default function SchedulePage() {
                         <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                           <span className="text-[10px] font-black uppercase text-white/50 flex items-center gap-2">
                             <Clock className="size-3.5 text-primary" />
-                            {showTime ? `${lesson.time} – ${lesson.timeEnd}` : 'Час не вказано'}
+                            {showTime
+                              ? `${lesson.time} – ${lesson.timeEnd}`
+                              : "Час не вказано"}
                           </span>
                           {hasOrder ? (
                             <Badge className="bg-primary/10 text-primary font-black px-2.5 py-0.5 text-[9px] rounded-lg border-0">
@@ -423,43 +521,64 @@ export default function SchedulePage() {
                                 {lesson.subject}
                               </h3>
                               <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.15em] mt-1 truncate">
-                                {lesson.room && lesson.room !== '---' ? `Каб. ${lesson.room}` : ''}
-                                {lesson.teacher && lesson.teacher !== 'Вчитель' && (
-                                  <span className="text-muted-foreground/40 hidden sm:inline">
-                                    {lesson.room && lesson.room !== '---' ? ' • ' : ''}{lesson.teacher}
-                                  </span>
-                                )}
+                                {lesson.room && lesson.room !== "---"
+                                  ? `Каб. ${lesson.room}`
+                                  : ""}
+                                {lesson.teacher &&
+                                  lesson.teacher !== "Вчитель" && (
+                                    <span className="text-muted-foreground/40 hidden sm:inline">
+                                      {lesson.room && lesson.room !== "---"
+                                        ? " • "
+                                        : ""}
+                                      {lesson.teacher}
+                                    </span>
+                                  )}
                               </p>
                             </div>
                           </div>
 
                           {/* Homework */}
                           {(() => {
-                            const hwKey = getLessonHwKey(lesson)
-                            const hw = getHomework(lesson)
-                            const isEditing = editingHw === hwKey
+                            const hwKey = getLessonHwKey(lesson);
+                            const hw = getHomework(lesson);
+                            const isEditing = editingHw === hwKey;
 
                             if (isEditing) {
                               return (
                                 <div className="p-3 sm:p-3.5 rounded-xl sm:rounded-2xl bg-primary/10 border border-primary/20 mt-auto space-y-2">
                                   <textarea
                                     value={hwDraft}
-                                    onChange={e => setHwDraft(e.target.value)}
+                                    onChange={(e) => setHwDraft(e.target.value)}
                                     className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white/90 resize-none focus:outline-none focus:border-primary/40 placeholder:text-white/30"
                                     rows={3}
                                     placeholder="Домашнє завдання..."
                                     autoFocus
                                   />
                                   <div className="flex gap-2 justify-end">
-                                    <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] rounded-lg" onClick={() => { setEditingHw(null); setHwDraft("") }} disabled={savingHw}>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-[10px] rounded-lg"
+                                      onClick={() => {
+                                        setEditingHw(null);
+                                        setHwDraft("");
+                                      }}
+                                      disabled={savingHw}
+                                    >
                                       <X className="size-3 mr-1" /> Скасувати
                                     </Button>
-                                    <Button size="sm" className="h-7 px-3 text-[10px] rounded-lg cyber-gradient" onClick={() => handleSaveHw(lesson)} disabled={savingHw}>
-                                      <Check className="size-3 mr-1" /> {savingHw ? "..." : "Зберегти"}
+                                    <Button
+                                      size="sm"
+                                      className="h-7 px-3 text-[10px] rounded-lg cyber-gradient"
+                                      onClick={() => handleSaveHw(lesson)}
+                                      disabled={savingHw}
+                                    >
+                                      <Check className="size-3 mr-1" />{" "}
+                                      {savingHw ? "..." : "Зберегти"}
                                     </Button>
                                   </div>
                                 </div>
-                              )
+                              );
                             }
 
                             return (
@@ -467,11 +586,20 @@ export default function SchedulePage() {
                                 <div className="flex items-start gap-2">
                                   <BookOpen className="size-3 sm:size-3.5 text-primary/50 mt-0.5 shrink-0" />
                                   <p className="text-[11px] sm:text-xs text-white/70 leading-relaxed flex-1">
-                                    {hw ? <Linkify text={hw} /> : <span className="italic text-white/30">Немає ДЗ</span>}
+                                    {hw ? (
+                                      <Linkify text={hw} />
+                                    ) : (
+                                      <span className="italic text-white/30">
+                                        Немає ДЗ
+                                      </span>
+                                    )}
                                   </p>
                                   {canEditHw && (
                                     <button
-                                      onClick={() => { setEditingHw(hwKey); setHwDraft(hw || "") }}
+                                      onClick={() => {
+                                        setEditingHw(hwKey);
+                                        setHwDraft(hw || "");
+                                      }}
                                       className="shrink-0 p-1 rounded-md hover:bg-white/10 transition-colors text-white/30 hover:text-primary"
                                     >
                                       <Pencil className="size-3" />
@@ -479,23 +607,25 @@ export default function SchedulePage() {
                                   )}
                                 </div>
                               </div>
-                            )
+                            );
                           })()}
                         </div>
                       </Card>
-                    )
+                    );
                   })}
                 </div>
               ) : (
                 <Card className="glass-panel border-0 rounded-[1.5rem] sm:rounded-[2rem]">
                   <div className="py-10 sm:py-14 flex flex-col items-center gap-3 text-muted-foreground/30">
                     <Coffee className="size-8 sm:size-10" />
-                    <span className="text-xs sm:text-sm font-medium">Немає уроків</span>
+                    <span className="text-xs sm:text-sm font-medium">
+                      Немає уроків
+                    </span>
                   </div>
                 </Card>
               )}
             </div>
-          )
+          );
         })}
       </div>
 
@@ -506,11 +636,15 @@ export default function SchedulePage() {
             <AlertTriangle className="size-5 text-yellow-500" />
           </div>
           <div>
-            <p className="text-sm sm:text-base font-bold text-yellow-400">Розклад порожній</p>
-            <p className="text-xs sm:text-sm text-yellow-500/60 mt-1">Синхронізуйте дані з NZ.ua, щоб побачити розклад уроків.</p>
+            <p className="text-sm sm:text-base font-bold text-yellow-400">
+              Розклад порожній
+            </p>
+            <p className="text-xs sm:text-sm text-yellow-500/60 mt-1">
+              Синхронізуйте дані з NZ.ua, щоб побачити розклад уроків.
+            </p>
           </div>
         </Card>
       )}
     </div>
-  )
+  );
 }
