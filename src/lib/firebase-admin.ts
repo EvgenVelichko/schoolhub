@@ -6,6 +6,12 @@ let _app: App | undefined;
 let _db: Firestore | undefined;
 let _messaging: Messaging | undefined;
 
+/** Returns true if the Admin SDK can be initialized (service account key is present). */
+export function isAdminAvailable(): boolean {
+  if (getApps().length > 0) return true;
+  return !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+}
+
 function getAdminApp(): App {
   if (getApps().length > 0) {
     return getApps()[0];
@@ -28,15 +34,7 @@ function getAdminApp(): App {
       );
     }
   } else {
-    console.warn(
-      "FIREBASE_SERVICE_ACCOUNT_KEY is not set. " +
-      "Firebase Admin SDK features (push notifications, server-side sync) will not work. " +
-      "Add FIREBASE_SERVICE_ACCOUNT_KEY to .env.local to enable them."
-    );
-    throw new Error(
-      "Firebase Admin SDK requires FIREBASE_SERVICE_ACCOUNT_KEY environment variable. " +
-      "Download a service account key from Firebase Console > Project Settings > Service Accounts."
-    );
+    throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not set.");
   }
 
   return _app;

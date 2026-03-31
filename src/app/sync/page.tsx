@@ -12,6 +12,7 @@ import { useUser, useFirestore } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { syncWithNzPortal } from "@/app/actions/nz-sync";
 import { motion, AnimatePresence } from "framer-motion";
+import { doc, setDoc, collection, getDocs, deleteDoc, writeBatch, addDoc, updateDoc, query, where, collectionGroup } from "firebase/firestore";
 
 const SYNC_MESSAGES = [
   "Синхронізація оцінок...",
@@ -167,36 +168,114 @@ export default function SyncPage() {
         };
       }
 
-      // 2. Send everything to server API — admin SDK writes fast
+      // 2. Try server API first (fast, uses Admin SDK), fall back to client-side writes
       setProgress(60);
       setStatus("Запис у базу даних...");
 
-      const res = await fetch("/api/sync-save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.uid,
-          grades: data.grades,
-          lessons: data.lessons,
-          classroom,
-          profile: {
-            displayName: data.studentName || user.displayName,
-            gradeLevel,
-            schoolId,
-            schoolName: data.schoolName,
-            isNzConnected: true,
-            nzLogin: login,
-            nzPassword: password,
-            academicStatus: avgScore >= 10 ? "Відмінник" : avgScore >= 7 ? "Хорошист" : "Потребує уваги",
-            level: avgScore,
-            xp: totalXp,
-          },
-        }),
-      });
+      const profileData = {
+        displayName: data.studentName || user.displayName,
+        gradeLevel,
+        schoolId,
+        schoolName: data.schoolName,
+        isNzConnected: true,
+        nzLogin: login,
+        nzPassword: password,
+        academicStatus: avgScore >= 10 ? "Відмінник" : avgScore >= 7 ? "Хорошист" : "Потребує уваги",
+        level: avgScore,
+        xp: totalXp,
+      };
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Server error ${res.status}`);
+      let serverSaved = false;
+      try {
+        const res = await fetch("/api/sync-save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user.uid,
+            grades: data.grades,
+            lessons: data.lessons,
+            classroom,
+            profile: profileData,
+          }),
+        });
+        if (res.ok) {
+          serverSaved = true;
+        }
+      } catch {
+        // Server API unavailable, will use client-side writes
+      }
+
+      if (!serverSaved) {
+        setStatus("Збереження через клієнт...");
+        // Client-side fallback: write directly to Firestore
+        const CHUNK = 400;
+
+        // Delete old grades + lessons
+        const [oldGradesSnap, oldLessonsSnap] = await Promise.all([
+          getDocs(collection(db, "users", user.uid, "grades")),
+          getDocs(collection(db, "users", user.uid, "lessons")),
+        ]);
+        const deletes = [...oldGradesSnap.docs, ...oldLessonsSnap.docs];
+        for (let i = 0; i < deletes.length; i += CHUNK) {
+          const batch = writeBatch(db);
+          deletes.slice(i, i + CHUNK).forEach((d) => batch.delete(d.ref));
+          await batch.commit();
+        }
+
+        // Write grades
+        if (data.grades.length) {
+          for (let i = 0; i < data.grades.length; i += CHUNK) {
+            const batch = writeBatch(db);
+            data.grades.slice(i, i + CHUNK).forEach((g) => {
+              const rawId = g.sourceKey || `${g.subject}_${g.date}_${g.type}_${g.score}`;
+              const safeId = "grd_" + rawId.replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_").toLowerCase();
+              const ref = doc(db, "users", user.uid, "grades", safeId);
+              batch.set(ref, { ...g, syncedAt: new Date().toISOString() });
+            });
+            await batch.commit();
+          }
+        }
+
+        // Write lessons
+        if (data.lessons.length) {
+          for (let i = 0; i < data.lessons.length; i += CHUNK) {
+            const batch = writeBatch(db);
+            data.lessons.slice(i, i + CHUNK).forEach((l) => {
+              const rawId = `${l.date}_${l.order}_${l.subject}`;
+              const safeId = "lsn_" + rawId.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").replace(/_+/g, "_").toLowerCase();
+              const ref = doc(db, "users", user.uid, "lessons", safeId);
+              batch.set(ref, { ...l, syncedAt: new Date().toISOString() }, { merge: true });
+            });
+            await batch.commit();
+          }
+        }
+
+        // Write classroom + membership
+        if (classroom?.groupId) {
+          await setDoc(doc(db, "groups", classroom.groupId), classroom.groupData, { merge: true });
+          await setDoc(
+            doc(db, "users", user.uid, "memberships", classroom.groupId),
+            classroom.memberData,
+            { merge: true },
+          );
+        }
+
+        // Update user profile
+        await updateDoc(doc(db, "users", user.uid), {
+          ...profileData,
+          lastSync: new Date().toISOString(),
+          syncEnabled: true,
+        });
+
+        // Add notification
+        await addDoc(collection(db, "users", user.uid, "notifications"), {
+          type: "grade",
+          title: "Нові оцінки",
+          body: `Синхронізовано ${data.grades.length} оцінок з NZ.ua`,
+          link: "/grades",
+          isRead: false,
+          createdAt: new Date(),
+        });
       }
 
       setProgress(100);

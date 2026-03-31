@@ -46,7 +46,10 @@ if (missingEnvVars.length > 0) {
 
 export const firebaseConfig = {
   apiKey: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_API_KEY"),
-  authDomain: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
+  authDomain:
+    typeof window !== "undefined" && window.location.hostname !== "localhost"
+      ? window.location.hostname
+      : readFirebaseEnv("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
   projectId: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_PROJECT_ID"),
   storageBucket: readFirebaseEnv("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"),
   messagingSenderId: readFirebaseEnv(

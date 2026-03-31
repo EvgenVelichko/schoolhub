@@ -14,11 +14,26 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
+  browserLocalPersistence,
+  setPersistence,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
+
+const firebaseAuthErrors: Record<string, string> = {
+  "auth/invalid-credential": "Невірний email або пароль. Перевірте дані та спробуйте ще раз.",
+  "auth/user-not-found": "Користувача з таким email не знайдено.",
+  "auth/wrong-password": "Невірний пароль.",
+  "auth/email-already-in-use": "Цей email вже зареєстровано.",
+  "auth/weak-password": "Пароль занадто слабкий. Мінімум 6 символів.",
+  "auth/invalid-email": "Невірний формат email.",
+  "auth/too-many-requests": "Забагато спроб. Спробуйте пізніше.",
+  "auth/network-request-failed": "Помилка мережі. Перевірте інтернет-з'єднання.",
+  "auth/popup-closed-by-user": "Вікно входу було закрито.",
+  "auth/operation-not-allowed": "Цей метод входу не увімкнено. Зверніться до адміністратора.",
+};
 
 export default function AuthPage() {
   const auth = useAuth();
@@ -73,6 +88,7 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
+      await setPersistence(auth, browserLocalPersistence);
       const result = await signInWithPopup(auth, provider);
       const { isNew, isNzConnected } = await initUserProfile(
         result.user.uid,
@@ -90,9 +106,10 @@ export default function AuthPage() {
         router.push("/");
       }
     } catch (e: any) {
+      const code = e?.code || "";
       toast({
         title: "Помилка входу",
-        description: e.message,
+        description: firebaseAuthErrors[code] || e.message,
         variant: "destructive",
       });
     }
@@ -109,6 +126,7 @@ export default function AuthPage() {
     }
     setIsPending(true);
     try {
+      await setPersistence(auth, browserLocalPersistence);
       if (action === "register") {
         const result = await createUserWithEmailAndPassword(
           auth,
@@ -137,9 +155,10 @@ export default function AuthPage() {
         }
       }
     } catch (e: any) {
+      const code = e?.code || "";
       toast({
         title: "Помилка",
-        description: e.message,
+        description: firebaseAuthErrors[code] || e.message,
         variant: "destructive",
       });
     } finally {
