@@ -68,15 +68,26 @@ self.addEventListener("sync", (event) => {
 
 async function doBackgroundSync() {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 55000); // 55s timeout
+
     const response = await fetch("/api/sync-cron", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
+
     if (!response.ok) {
       console.error("Background sync failed:", response.status);
     }
   } catch (e) {
-    console.error("Background sync error:", e);
+    if (e.name === "AbortError") {
+      console.warn("Background sync timed out, will retry next cycle");
+    } else {
+      console.error("Background sync error:", e);
+    }
   }
 }
 

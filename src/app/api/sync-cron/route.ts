@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getAdminMessaging } from "@/lib/firebase-admin";
 import { syncWithNzPortal } from "@/app/actions/nz-sync";
 
+// Allow up to 60s on Vercel (prevents 504 timeout)
+export const maxDuration = 60;
+
 // Cron secret to prevent unauthorized calls
 const CRON_SECRET = process.env.CRON_SECRET || "schoolhub-sync-2024";
 
@@ -29,7 +32,10 @@ export async function POST(req: NextRequest) {
     let errors = 0;
     const notifications: Array<{ userId: string; newGrades: number }> = [];
 
-    for (const userDoc of usersSnap.docs) {
+    // Process max 10 users per invocation to stay within timeout
+    const userDocs = usersSnap.docs.slice(0, 10);
+
+    for (const userDoc of userDocs) {
       const userData = userDoc.data();
       const userId = userDoc.id;
 
@@ -55,8 +61,9 @@ export async function POST(req: NextRequest) {
 
         const { data } = result;
 
-        // Write grades
-        const batch = getAdminDb().batch();
+        // Write grades + lessons in batches
+        const BATCH_LIMIT = 499;
+        let batch = getAdminDb().batch();
         let batchCount = 0;
 
         for (const g of data.grades) {
@@ -66,13 +73,13 @@ export async function POST(req: NextRequest) {
           batch.set(ref, { ...g, syncedAt: new Date() }, { merge: true });
           batchCount++;
 
-          if (batchCount >= 499) {
+          if (batchCount >= BATCH_LIMIT) {
             await batch.commit();
+            batch = getAdminDb().batch();
             batchCount = 0;
           }
         }
 
-        // Write lessons
         for (const l of data.lessons) {
           const rawId = `${l.date}_${l.order}_${l.subject}`;
           const safeId = "lsn_" + rawId.replace(/[^a-zA-Z0-9\u0400-\u04FF]/g, "_").replace(/_+/g, "_").toLowerCase();
@@ -80,8 +87,9 @@ export async function POST(req: NextRequest) {
           batch.set(ref, { ...l, syncedAt: new Date() }, { merge: true });
           batchCount++;
 
-          if (batchCount >= 499) {
+          if (batchCount >= BATCH_LIMIT) {
             await batch.commit();
+            batch = getAdminDb().batch();
             batchCount = 0;
           }
         }
